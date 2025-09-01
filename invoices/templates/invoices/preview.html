@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previsualización de Factura</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .status-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .success-status {
+            border-left: 5px solid #28a745;
+        }
+
+        .error-status {
+            border-left: 5px solid #dc3545;
+        }
+
+        .status-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .status-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .success-status .status-title {
+            color: #28a745;
+        }
+
+        .error-status .status-title {
+            color: #dc3545;
+        }
+
+        .status-message {
+            color: #666;
+            font-size: 1em;
+            line-height: 1.4;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #721c24;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-word;
+        }
+
+        .blob-link {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .blob-link a {
+            color: #1976d2;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .blob-link a:hover {
+            text-decoration: underline;
+        }
+
+        .data-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .data-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            font-weight: 600;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-content {
+            padding: 25px;
+        }
+
+        .header-info {
+            display: grid;
+            gap: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f3f4;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 600;
+            font-size: 14px;
+            min-width: 140px;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 500;
+            text-align: right;
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .confidence-badge {
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .items-table thead th {
+            background: #f8f9fa;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .items-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        .items-table tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        .items-table tbody td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #f1f3f4;
+            color: #333;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        .item-number {
+            background: #667eea;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .item-description {
+            font-weight: 500;
+            max-width: 200px;
+            line-height: 1.4;
+        }
+
+        .item-amount {
+            text-align: right;
+            font-weight: 600;
+            color: #28a745;
+            font-family: 'Courier New', monospace;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .empty-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .data-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .info-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .info-label {
+                min-width: auto;
+            }
+            
+            .info-value {
+                text-align: left;
+            }
+            
+            .items-table {
+                font-size: 12px;
+            }
+            
+            .items-table thead th,
+            .items-table tbody td {
+                padding: 10px 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 250px;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔍 Previsualización</h1>
+            <p class="header-subtitle">Datos extraídos automáticamente de la factura</p>
+        </div>
+
+        <!-- Status Card -->
+        <div class="status-card {% if error %}error-status{% else %}success-status{% endif %}">
+            {% if error %}
+                <div class="status-icon">❌</div>
+                <div class="status-title">Error en el procesamiento</div>
+                <div class="status-message">Se produjo un error al procesar la factura</div>
+                <div class="error-message">{{ error }}</div>
+            {% else %}
+                <div class="status-icon">✅</div>
+                <div class="status-title">Procesamiento exitoso</div>
+                <div class="status-message">La factura ha sido analizada correctamente por la IA</div>
+            {% endif %}
+        </div>
+
+        <!-- Blob URL -->
+        {% if blob_url %}
+            <div class="blob-link">
+                <strong>📁 Archivo procesado:</strong>
+                <a href="{{ blob_url }}" target="_blank">🔗 Ver archivo original en Azure Blob Storage</a>
+            </div>
+        {% endif %}
+
+        <!-- Data Sections -->
+        {% if header or items %}
+            <div class="data-section">
+                <!-- Header Information -->
+                {% if header %}
+                    <div class="data-card">
+                        <div class="card-header">
+                            📋 Información de la Factura
+                        </div>
+                        <div class="card-content">
+                            <div class="header-info">
+                                <div class="info-row">
+                                    <span class="info-label">Proveedor:</span>
+                                    <span class="info-value">
+                                        {{ header.vendor_name|default:"-" }}
+                                        {% if header.vendor_name_confidence %}
+                                            <span class="confidence-badge">{{ header.vendor_name_confidence|floatformat:0 }}%</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">CUIT:</span>
+                                    <span class="info-value">{{ header.vendor_tax_id|default:"-" }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">N° Factura:</span>
+                                    <span class="info-value">{{ header.invoice_id|default:"-" }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Fecha:</span>
+                                    <span class="info-value">{{ header.invoice_date|default:"-" }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Cliente:</span>
+                                    <span class="info-value">{{ header.customer_name|default:"-" }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">CUIT Cliente:</span>
+                                    <span class="info-value">{{ header.customer_tax_id|default:"-" }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Subtotal:</span>
+                                    <span class="info-value">{{ header.subtotal|default:"-" }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Impuestos:</span>
+                                    <span class="info-value">{{ header.total_tax|default:"-" }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Total:</span>
+                                    <span class="info-value" style="color: #28a745; font-weight: 700; font-size: 1.1em;">
+                                        {{ header.invoice_total|default:"-" }}
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Fecha Vencimiento:</span>
+                                    <span class="info-value">{{ header.due_date|default:"-" }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Condición de Pago:</span>
+                                    <span class="info-value">{{ header.payment_term|default:"-" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Items Section -->
+                {% if items %}
+                    <div class="data-card" style="grid-column: 1 / -1;">
+                        <div class="card-header">
+                            📦 Ítems de la Factura
+                            <span style="background: rgba(255,255,255,0.2); padding: 3px 12px; border-radius: 15px; font-size: 12px; margin-left: auto;">
+                                {{ items|length }} ítem{{ items|length|pluralize:"s" }}
+                            </span>
+                        </div>
+                        <div class="card-content">
+                            <table class="items-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Descripción</th>
+                                        <th>Cantidad</th>
+                                        <th>Unidad</th>
+                                        <th>Precio Unit.</th>
+                                        <th>Importe</th>
+                                        <th>Código</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for it in items %}
+                                    <tr>
+                                        <td>
+                                            <div class="item-number">{{ forloop.counter }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="item-description">{{ it.description|default:"Sin descripción" }}</div>
+                                        </td>
+                                        <td style="text-align: center;">{{ it.quantity|default:"-" }}</td>
+                                        <td style="text-align: center;">{{ it.unit|default:"-" }}</td>
+                                        <td class="item-amount">{{ it.unit_price|default:"-" }}</td>
+                                        <td class="item-amount">{{ it.amount|default:"-" }}</td>
+                                        <td style="text-align: center; font-family: 'Courier New', monospace; font-size: 12px;">
+                                            {{ it.product_code|default:"-" }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="data-card">
+                <div class="card-content">
+                    <div class="empty-state">
+                        <div class="empty-icon">📄</div>
+                        <h3>Sin datos para mostrar</h3>
+                        <p>No se pudieron extraer datos de la factura o no hay resultados recientes.</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <a href="{% url 'upload_invoice' %}" class="btn btn-primary">
+                📤 Cargar otra factura
+            </a>
+            <a href="{% url 'list_invoices' %}" class="btn btn-primary">
+                🏠 Volver al inicio
+            </a>
+        </div>
+    </div>
+</body>
+</html>

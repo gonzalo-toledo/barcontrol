@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Facturas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .filters-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .filters-title {
+            color: #333;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input, .form-group select {
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+            border: 2px solid #e1e5e9;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        tbody td {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f1f3f4;
+            color: #333;
+        }
+
+        .supplier-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .invoice-number {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .amount {
+            font-weight: 600;
+            color: #28a745;
+        }
+
+        .btn-view {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 30px 0;
+        }
+
+        .pagination a, .pagination span {
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .pagination a {
+            background: white;
+            color: #667eea;
+            border: 2px solid #e1e5e9;
+        }
+
+        .pagination a:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination .current {
+            background: #667eea;
+            color: white;
+            border: 2px solid #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .add-invoice {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 24px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .add-invoice:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .filter-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            table {
+                font-size: 14px;
+            }
+            
+            thead th, tbody td {
+                padding: 10px 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 Gestión de Facturas</h1>
+            <p class="header-subtitle">Sistema inteligente de procesamiento de facturas</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-card">
+            <div class="filters-title">
+                🔍 Filtros de búsqueda
+            </div>
+            
+            <form method="get" class="filter-form">
+                <div class="form-group">
+                    <label for="supplier">Proveedor</label>
+                    <input list="supplier-list" name="supplier" value="{{ current_params.supplier|default:'' }}" placeholder="Ej: CORSIDER...">
+                    <datalist id="supplier-list">
+                        {% for s in suppliers %}
+                            <option value="{{ s }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                
+                <div class="form-group">
+                    <label for="number">N° Factura</label>
+                    <input type="text" name="number" value="{{ current_params.number|default:'' }}" placeholder="Ej: 00000120">
+                </div>
+                
+                <div class="form-group">
+                    <label for="item">Ítem contiene</label>
+                    <input type="text" name="item" value="{{ current_params.item|default:'' }}" placeholder="Ej: nalga, bebida...">
+                </div>
+                
+                <div class="form-group">
+                    <label for="date_from">Desde</label>
+                    <input type="date" name="date_from" value="{{ current_params.date_from|default:'' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="date_to">Hasta</label>
+                    <input type="date" name="date_to" value="{{ current_params.date_to|default:'' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="total_min">Total mínimo</label>
+                    <input type="number" step="0.01" name="total_min" value="{{ current_params.total_min|default:'' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="total_max">Total máximo</label>
+                    <input type="number" step="0.01" name="total_max" value="{{ current_params.total_max|default:'' }}">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{% url 'list_invoices' %}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table -->
+        <div class="table-card">
+            <div class="table-header">
+                Facturas encontradas: {{ paginator.count }}
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Proveedor</th>
+                        <th>N° Factura</th>
+                        <th>Fecha</th>
+                        <th>Total</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for inv in page_obj.object_list %}
+                    <tr>
+                        <td class="supplier-name">{{ inv.supplier.name }}</td>
+                        <td><span class="invoice-number">{{ inv.invoice_number }}</span></td>
+                        <td>{{ inv.invoice_date|default:"-" }}</td>
+                        <td class="amount">{{ inv.total|default:"-" }} {{ inv.currency }}</td>
+                        <td><a href="{% url 'invoice_detail' inv.pk %}" class="btn-view">Ver detalles</a></td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div class="empty-icon">📄</div>
+                            <h3>No hay facturas</h3>
+                            <p>No se encontraron facturas que coincidan con los criterios de búsqueda.</p>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if paginator.num_pages > 1 %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{{ base_qs }}">« Primero</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{{ base_qs }}">‹ Anterior</a>
+                {% endif %}
+
+                <span class="current">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{{ base_qs }}">Siguiente ›</a>
+                    <a href="?page={{ paginator.num_pages }}{{ base_qs }}">Último »</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Floating Action Button -->
+    <a href="{% url 'upload_invoice' %}" class="add-invoice" title="Cargar nueva factura">+</a>
+</body>
+</html>

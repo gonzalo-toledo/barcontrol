@@ -1,0 +1,172 @@
+# Ignore all __pycache__ directories
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Ignore all local settings files
+local_settings.py
+local_settings.pyc
+local_settings.pyo
+
+# Ignore all db.sqlite3 files
+db.sqlite3
+db.sqlite3-journal
+
+# Ignore all .log files
+*.log
+
+# Ignore all .pot files
+*.pot
+
+# Ignore all .mo files
+*.mo
+
+# Ignore all .egg-info directories
+*.egg-info/
+
+# Ignore all dist directories
+dist/
+build/
+
+# Ignore all pycache directories
+.pycache/
+
+# Ignore all .env files
+.env
+.venv
+venv/
+venv
+/venv
+# Ignore all .idea directories
+.idea/
+
+# Ignore all .vscode directories
+.vscode/
+
+# Ignore all .DS_Store files
+.DS_Store
+
+# Ignore all .pytest_cache directories
+.pytest_cache/
+
+# Ignore all .tox directories
+.tox/
+
+# Ignore all .mypy_cache directories
+.mypy_cache/
+
+# Ignore all .ipynb_checkpoints directories
+.ipynb_checkpoints/
+
+# Ignore all .eggs directories
+.eggs/
+
+# Ignore all .cache directories
+.cache/
+
+# Ignore all .coverage directories
+.coverage/
+
+# Ignore all .hypothes.is directories
+.hypothes.is/
+
+# Ignore all .pytest_cache directories
+.pytest_cache/
+
+# Ignore all .tox directories
+.tox/
+
+# Ignore all .mypy_cache directories
+.mypy_cache/
+
+# Ignore all .ipynb_checkpoints directories
+.ipynb_checkpoints/
+
+# Ignore all .eggs directories
+.eggs/
+
+# Ignore all .cache directories
+.cache/
+
+# Ignore all .coverage directories
+.coverage/
+
+# Ignore all .hypothes.is directories
+.hypothes.is/
+
+# Ignore all .pytest_cache directories
+.pytest_cache/
+
+# Ignore all .tox directories
+.tox/
+
+# Ignore all .mypy_cache directories
+.mypy_cache/
+
+# Ignore all .ipynb_checkpoints directories
+.ipynb_checkpoints/
+
+# Ignore all .eggs directories
+.eggs/
+
+# Ignore all .cache directories
+.cache/
+
+# Ignore all .coverage directories
+.coverage/
+
+# Ignore all .hypothes.is directories
+.hypothes.is/
+
+# Ignore all .pytest_cache directories
+.pytest_cache/
+
+# Ignore all .tox directories
+.tox/
+
+# Ignore all .mypy_cache directories
+.mypy_cache/
+
+# Ignore all .ipynb_checkpoints directories
+.ipynb_checkpoints/
+
+# Ignore all .eggs directories
+.eggs/
+
+# Ignore all .cache directories
+.cache/
+
+# Ignore all .coverage directories
+.coverage/
+
+# Ignore all .hypothes.is directories
+.hypothes.is/
+
+# Ignore all .pytest_cache directories
+.pytest_cache/
+
+# Ignore all .tox directories
+.tox/
+
+# Ignore all .mypy_cache directories
+.mypy_cache/
+
+# Ignore all .ipynb_checkpoints directories
+.ipynb_checkpoints/
+
+# Ignore all .eggs directories
+.eggs/
+
+# Ignore all .cache directories
+.cache/
+
+# Ignore all .coverage directories
+.coverage/
+
+# Ignore all .hypothes.is directories
+.hypothes.is/
+
+# Ignore all .pytest_cache directories
+.pytest_cache/
+
+# Ignore all .tox directories

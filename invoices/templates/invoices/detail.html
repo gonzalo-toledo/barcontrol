@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura {{ inv.invoice_number }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .back-btn {
+            background: white;
+            color: #667eea;
+            padding: 12px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .view-original-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-original-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+        }
+
+        .invoice-header {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .invoice-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .invoice-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .invoice-title h1 {
+            color: #333;
+            font-size: 2.5em;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .invoice-status {
+            background: #28a745;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .invoice-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .meta-item {
+            text-align: center;
+        }
+
+        .meta-label {
+            color: #666;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .meta-value {
+            color: #333;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .meta-value.amount {
+            color: #28a745;
+            font-size: 1.8em;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .info-card h3 {
+            color: #333;
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .items-section {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        }
+
+        .items-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .items-header h2 {
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+
+        .items-table {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead th {
+            background: #f8f9fa;
+            padding: 18px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e9ecef;
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        tbody td {
+            padding: 20px;
+            border-bottom: 1px solid #f1f3f4;
+            color: #333;
+            vertical-align: top;
+        }
+
+        .item-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .product-name {
+            font-weight: 600;
+            color: #333;
+            max-width: 300px;
+            line-height: 1.4;
+        }
+
+        .quantity-unit {
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .amount {
+            text-align: right;
+            font-weight: 700;
+            color: #28a745;
+            font-family: 'Courier New', monospace;
+        }
+
+        .product-code {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .empty-items {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .invoice-header {
+                padding: 25px;
+            }
+            
+            .invoice-title {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            
+            .invoice-title h1 {
+                font-size: 2em;
+            }
+            
+            .invoice-meta {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header-actions {
+                justify-content: center;
+            }
+            
+            .items-table {
+                font-size: 12px;
+            }
+            
+            thead th, tbody td {
+                padding: 12px 8px;
+            }
+            
+            .product-name {
+                max-width: 150px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .invoice-meta {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Actions -->
+        <div class="header-actions">
+            <a href="{% url 'list_invoices' %}" class="back-btn">
+                ← Volver al listado
+            </a>
+            <a href="{% url 'invoice_view_original' inv.pk %}" target="_blank" class="view-original-btn">
+                🔍 Ver factura original
+            </a>
+        </div>
+
+        <!-- Invoice Header -->
+        <div class="invoice-header">
+            <div class="invoice-title">
+                <h1>
+                    📄 Factura {{ inv.invoice_number }}
+                </h1>
+                <div class="invoice-status">Procesada</div>
+            </div>
+            
+            <div class="invoice-meta">
+                <div class="meta-item">
+                    <div class="meta-label">Proveedor</div>
+                    <div class="meta-value">{{ inv.supplier.name }}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Fecha</div>
+                    <div class="meta-value">{{ inv.invoice_date|default:"Sin fecha" }}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Total</div>
+                    <div class="meta-value amount">{{ inv.total|default:"0" }} {{ inv.currency }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Grid -->
+        <div class="info-grid">
+            <!-- Supplier Info -->
+            <div class="info-card">
+                <h3>🏢 Información del Proveedor</h3>
+                <div class="info-item">
+                    <span class="info-label">Nombre</span>
+                    <span class="info-value">{{ inv.supplier.name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">CUIT</span>
+                    <span class="info-value">{{ inv.supplier.tax_id|default:"-" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Dirección</span>
+                    <span class="info-value">{{ inv.supplier.address|default:"-" }}</span>
+                </div>
+            </div>
+
+            <!-- Customer Info -->
+            <div class="info-card">
+                <h3>👤 Información del Cliente</h3>
+                <div class="info-item">
+                    <span class="info-label">Nombre</span>
+                    <span class="info-value">{{ inv.customer_name|default:"-" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">CUIT</span>
+                    <span class="info-value">{{ inv.customer_tax_id|default:"-" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Dirección</span>
+                    <span class="info-value">{{ inv.customer_address|default:"-" }}</span>
+                </div>
+            </div>
+
+            <!-- Payment Terms -->
+            <div class="info-card">
+                <h3>💳 Condiciones de Pago</h3>
+                <div class="info-item">
+                    <span class="info-label">Condición de pago</span>
+                    <span class="info-value">{{ inv.payment_term|default:"-" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Fecha de vencimiento</span>
+                    <span class="info-value">{{ inv.due_date|default:"-" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Periodo de facturación</span>
+                    <span class="info-value">
+                        {% if inv.service_start_date and inv.service_end_date %}
+                            {{ inv.service_start_date }} — {{ inv.service_end_date }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Financial Summary -->
+            <div class="info-card">
+                <h3>💰 Resumen Financiero</h3>
+                <div class="info-item">
+                    <span class="info-label">Subtotal</span>
+                    <span class="info-value">{{ inv.subtotal|default:"-" }} {{ inv.currency }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Impuestos</span>
+                    <span class="info-value">{{ inv.total_tax|default:"-" }} {{ inv.currency }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Total</span>
+                    <span class="info-value amount">{{ inv.total|default:"-" }} {{ inv.currency }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Section -->
+        <div class="items-section">
+            <div class="items-header">
+                <span style="font-size: 1.5em;">📋</span>
+                <h2>Ítems de la Factura</h2>
+                <span style="background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; font-size: 14px; margin-left: auto;">
+                    {{ inv.items.count }} ítem{{ inv.items.count|pluralize:"s" }}
+                </span>
+            </div>
+            
+            <div class="items-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Descripción</th>
+                            <th>Cantidad</th>
+                            <th>Unidad</th>
+                            <th>Precio Unit.</th>
+                            <th>Importe</th>
+                            <th>Código</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for it in inv.items.all %}
+                        <tr>
+                            <td>
+                                <div class="item-number">{{ forloop.counter }}</div>
+                            </td>
+                            <td>
+                                <div class="product-name">{{ it.product_name }}</div>
+                            </td>
+                            <td class="quantity-unit">{{ it.quantity|default:"-" }}</td>
+                            <td class="quantity-unit">{{ it.unit|default:"-" }}</td>
+                            <td class="amount">{{ it.unit_price|default:"-" }}</td>
+                            <td class="amount">{{ it.line_total|default:"-" }}</td>
+                            <td>
+                                {% if it.product_code %}
+                                    <span class="product-code">{{ it.product_code }}</span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ it.item_date|default:"-" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="empty-items">
+                                <div class="empty-icon">📦</div>
+                                <h3>Sin ítems</h3>
+                                <p>Esta factura no tiene ítems registrados</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
