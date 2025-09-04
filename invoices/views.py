@@ -85,6 +85,9 @@ def upload_invoice(request):
                         supplier.address = sup_addr
                         fields_to_update.append("address")
 
+                    if fields_to_update:
+                        supplier.save(update_fields=fields_to_update)
+
                     # Factura (cabecera)
                     inv = Invoice.objects.create(
                         supplier=supplier,
@@ -99,6 +102,7 @@ def upload_invoice(request):
                         # Extras que incorporaste
                         customer_name=header.get("customer_name"),
                         customer_tax_id=header.get("customer_tax_id"),
+                        customer_address=header.get("customer_address"),
 
                         payment_term=header.get("payment_term"),
                         due_date=_d(header.get("due_date")),
