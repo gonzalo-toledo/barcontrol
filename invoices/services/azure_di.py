@@ -12,12 +12,20 @@ def _di_client() -> DocumentIntelligenceClient:
     )
 
 def analyze_invoice_from_url(file_url: str):
+    """
+    Ejecuta prebuilt-invoice pasando una URL (idealmente con SAS).
+    Devuelve el objeto 'result' del poller.
+    """
     client = _di_client()
     model_id = settings.AZ_DOCINT_MODEL or "prebuilt-invoice"
     poller = client.begin_analyze_document(model_id, AnalyzeDocumentRequest(url_source=file_url))
     return poller.result()
 
 def analyze_invoice_from_bytes(data: bytes):
+    """
+    Ejecuta prebuilt-invoice enviando bytes (no necesita SAS).
+    content_type se ignora para DI; solo es útil para tu control.
+    """
     client = _di_client()
     model_id = settings.AZ_DOCINT_MODEL or "prebuilt-invoice"
     poller = client.begin_analyze_document(model_id, data)
