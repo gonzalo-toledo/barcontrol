@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subir Factura</title>
+    <title>Cargar Factura - Sistema de Gestión</title>
     <style>
         * {
             margin: 0;
@@ -12,183 +12,428 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #f8f9fa;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            color: #212529;
         }
 
-        .upload-container {
+        .header {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            padding: 40px;
-            max-width: 500px;
-            width: 100%;
+            border-bottom: 1px solid #dee2e6;
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            color: #6c757d;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .main-container {
+            max-width: 600px;
+            margin: 3rem auto;
+            padding: 0 20px;
+        }
+
+        .upload-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 2rem 2.5rem 1rem;
+            border-bottom: 1px solid #e9ecef;
+            background: #f8f9fa;
+        }
+
+        .card-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-subtitle {
+            color: #6c757d;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .card-body {
+            padding: 2.5rem;
+        }
+
+        .upload-zone {
+            border: 2px dashed #ced4da;
+            border-radius: 8px;
+            padding: 3rem 2rem;
             text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            background: #fafbfc;
+        }
+
+        .upload-zone.dragover {
+            border-color: #0d6efd;
+            background: #f0f7ff;
+        }
+
+        .upload-zone:hover {
+            border-color: #adb5bd;
+            background: #f1f3f4;
         }
 
         .upload-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 1rem;
+            background: #e9ecef;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 30px;
-            color: white;
-            font-size: 36px;
+            font-size: 1.5rem;
+            color: #6c757d;
         }
 
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2.5em;
+        .upload-text {
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-text strong {
+            color: #495057;
             font-weight: 600;
         }
 
-        .subtitle {
-            color: #666;
-            margin-bottom: 40px;
-            font-size: 1.1em;
+        .upload-hint {
+            color: #6c757d;
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
         }
 
-        .form-group {
-            margin-bottom: 25px;
-            text-align: left;
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
         }
 
-        label {
+        .selected-file {
+            display: none;
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .selected-file.show {
             display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
-        input[type="file"] {
-            width: 100%;
-            padding: 15px;
-            border: 2px dashed #ddd;
-            border-radius: 10px;
-            background: #fafafa;
-            transition: all 0.3s ease;
-            cursor: pointer;
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
 
-        input[type="file"]:hover {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-
-        .checkbox-group {
+        .file-icon {
+            width: 32px;
+            height: 32px;
+            background: #0dcaf0;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            margin-bottom: 30px;
-        }
-
-        input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            accent-color: #667eea;
-        }
-
-        .checkbox-group label {
-            margin: 0;
-            color: #666;
-            font-size: 14px;
-            text-transform: none;
-            letter-spacing: normal;
-        }
-
-        .upload-btn {
-            background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 16px;
+            font-size: 0.875rem;
             font-weight: 600;
+        }
+
+        .file-details h4 {
+            margin: 0;
+            font-size: 0.875rem;
+            color: #0c5460;
+            font-weight: 600;
+        }
+
+        .file-details p {
+            margin: 0.25rem 0 0;
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            text-decoration: none;
+            border: none;
             cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .upload-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        .btn-primary {
+            background: #0d6efd;
+            color: white;
+            flex: 1;
         }
 
-        .upload-btn:active {
-            transform: translateY(0);
+        .btn-primary:hover {
+            background: #0b5ed7;
         }
 
-        .tip {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9ff;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-            color: #666;
-            font-size: 14px;
-            text-align: left;
+        .btn-primary:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
         }
 
-        .tip-icon {
-            color: #667eea;
-            margin-right: 8px;
-            font-weight: bold;
+        .btn-secondary {
+            background: white;
+            color: #6c757d;
+            border: 1px solid #ced4da;
         }
 
-        @media (max-width: 480px) {
-            .upload-container {
-                padding: 30px 20px;
+        .btn-secondary:hover {
+            background: #f8f9fa;
+            color: #495057;
+        }
+
+        .help-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #0d6efd;
+        }
+
+        .help-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        .help-text {
+            font-size: 0.875rem;
+            color: #6c757d;
+            line-height: 1.4;
+        }
+
+        .supported-formats {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .format-badge {
+            background: white;
+            border: 1px solid #dee2e6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
             }
             
-            h1 {
-                font-size: 2em;
+            .main-container {
+                margin: 2rem auto;
+                padding: 0 15px;
+            }
+            
+            .card-body {
+                padding: 1.5rem;
+            }
+            
+            .upload-zone {
+                padding: 2rem 1rem;
+            }
+            
+            .form-actions {
+                flex-direction: column;
             }
         }
     </style>
 </head>
 <body>
-    <div class="upload-container">
-        <div class="upload-icon">📄</div>
-        <h1>Subir Factura</h1>
-        <p class="subtitle">Procesa tu factura automáticamente con IA</p>
-        
-        <form action="" method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            
-            <div class="form-group">
-                <label for="id_file">Seleccionar archivo</label>
-                {{ form.file }}
-            </div>
-            
-            <div class="checkbox-group">
-                {{ form.use_bytes }}
-                <label for="id_use_bytes">{{ form.use_bytes.label }}</label>
-            </div>
-            
-            <button type="submit" class="upload-btn">
-                Procesar Factura
-            </button>
-        </form>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">Sistema de Gestión de Facturas</div>
+            <nav class="nav-links">
+                <a href="{% url 'list_invoices' %}" class="nav-link">Ver Facturas</a>
+                <a href="#" class="nav-link">Reportes</a>
+                <a href="#" class="nav-link">Configuración</a>
+            </nav>
+        </div>
+    </header>
 
-        <div class="tip">
-            <span class="tip-icon">💡</span>
-            <strong>Tip:</strong> Para una primera prueba, podés subir el mismo JPG de ejemplo del quickstart. Formatos soportados: PDF, JPG, PNG.
+    <div class="main-container">
+        <div class="upload-card">
+            <div class="card-header">
+                <h1 class="card-title">Cargar Nueva Factura</h1>
+                <p class="card-subtitle">Procesamiento automático mediante inteligencia artificial</p>
+            </div>
+            
+            <div class="card-body">
+                <form action="" method="post" enctype="multipart/form-data" id="uploadForm">
+                    {% csrf_token %}
+                    
+                    <div class="upload-zone" id="uploadZone">
+                        <div class="upload-icon">📄</div>
+                        <div class="upload-text">
+                            <strong>Haga clic aquí o arrastre su factura</strong>
+                        </div>
+                        <div class="upload-hint">
+                            Seleccione el archivo de factura desde su computadora
+                        </div>
+                        {{ form.file }}
+                    </div>
+                    
+                    <div class="selected-file" id="selectedFile">
+                        <div class="file-info">
+                            <div class="file-icon" id="fileIcon">PDF</div>
+                            <div class="file-details">
+                                <h4 id="fileName">archivo.pdf</h4>
+                                <p id="fileSize">0 KB</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                            <span>⚡</span> Procesar Factura
+                        </button>
+                        <a href="{% url 'list_invoices' %}" class="btn btn-secondary">
+                            <span>📋</span> Ver Facturas
+                        </a>
+                    </div>
+                </form>
+
+                <div class="help-section">
+                    <div class="help-title">Formatos Soportados</div>
+                    <div class="help-text">
+                        El sistema puede procesar facturas en los siguientes formatos:
+                    </div>
+                    <div class="supported-formats">
+                        <span class="format-badge">PDF</span>
+                        <span class="format-badge">JPG</span>
+                        <span class="format-badge">PNG</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.querySelector('input[type="file"]');
+        const selectedFile = document.getElementById('selectedFile');
+        const submitBtn = document.getElementById('submitBtn');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const fileIcon = document.getElementById('fileIcon');
+
+        // Drag and drop functionality
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            // Show selected file info
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            
+            // Set file icon
+            const extension = file.name.split('.').pop().toLowerCase();
+            fileIcon.textContent = extension.toUpperCase();
+            
+            // Show file info and enable submit button
+            selectedFile.classList.add('show');
+            submitBtn.disabled = false;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
 </body>
 </html>

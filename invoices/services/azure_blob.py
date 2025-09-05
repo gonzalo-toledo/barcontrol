@@ -1,12 +1,54 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
 
 from django.conf import settings
 from azure.storage.blob import (
     BlobServiceClient, ContentSettings,
     generate_blob_sas, BlobSasPermissions, BlobClient
 )
+
+import re
+import unicodedata
+
+def normalize_filename(filename: str) -> str:
+    """
+    Normaliza el nombre de archivo para usarlo en Azure Blob:
+    - convierte a minúsculas
+    - elimina tildes y caracteres especiales
+    - reemplaza espacios por guiones bajos
+    - permite solo letras, números, guiones, guiones bajos y punto
+    - conserva la extensión original
+    - agrega un UUID corto para evitar colisiones
+    """
+    # separar extensión
+    parts = filename.rsplit('.', 1)
+    name = parts[0]
+    ext = parts[1].lower() if len(parts) == 2 else ""
+
+    # quitar tildes y normalizar
+    name = unicodedata.normalize("NFKD", name)
+    name = name.encode("ascii", "ignore").decode("ascii")
+
+    # minúsculas
+    name = name.lower()
+
+    # reemplazar espacios por guiones bajos
+    name = name.replace(" ", "_")
+
+    # solo caracteres permitidos
+    name = re.sub(r"[^a-z0-9._-]", "_", name)
+
+    # evitar que quede vacío
+    if not name:
+        name = "file"
+
+    # agregar uuid corto para unicidad
+    uid = uuid.uuid4().hex[:8]
+    safe_name = f"{name}_{uid}"
+    if ext:
+        safe_name += f".{ext}"
+
+    return safe_name
 
 def _svc() -> BlobServiceClient:
     """

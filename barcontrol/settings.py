@@ -139,3 +139,9 @@ AZURE_BLOB_CONTAINER = os.getenv('AZURE_BLOB_CONTAINER', 'invoices')    # conten
 AZ_DOCINT_ENDPOINT = os.getenv('AZ_DOCINT_ENDPOINT')                    # https://deposito.cognitiveservices.azure.com/
 AZ_DOCINT_KEY = os.getenv('AZ_DOCINT_KEY')                              # clave del recurso DI
 AZ_DOCINT_MODEL = os.getenv('AZ_DOCINT_MODEL', 'prebuilt-invoice')      # modelo a usar
+
+# Modo de análisis: 'auto' (recomendado), 'sas', 'bytes'
+DI_ANALYZE_MODE = os.getenv('DI_ANALYZE_MODE', 'auto')
+
+# Si 'auto': umbral para decidir bytes vs SAS por tamaño
+DI_INLINE_BYTES_MAX_MB = float(os.getenv('DI_INLINE_BYTES_MAX_MB', '5'))

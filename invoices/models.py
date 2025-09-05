@@ -27,6 +27,9 @@ class Invoice(models.Model):
     customer_name = models.CharField(max_length=255, blank=True, null=True)
     customer_tax_id = models.CharField(max_length=64, blank=True, null=True)
     payment_term = models.CharField(max_length=100, blank=True, null=True)
+    customer_address = models.TextField(blank=True, null=True)
+    
+    # Invoice Dates
     
     due_date = models.DateField(blank=True, null=True)
     service_start_date = models.DateField(blank=True, null=True)
