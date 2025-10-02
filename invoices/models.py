@@ -1,56 +1,65 @@
 from django.db import models
 
-class Supplier(models.Model):
-    name = models.CharField(max_length=255, db_index=True)
-    tax_id = models.CharField(max_length=64, blank=True, null=True, db_index=True)
-    address = models.TextField(blank=True, null=True)
+class Proveedor(models.Model):
+    nombre = models.CharField("Nombre", max_length=255, db_index=True)
+    id_fiscal = models.CharField("ID fiscal / CUIT", max_length=64, blank=True, null=True, db_index=True)
+    direccion = models.TextField("Dirección", blank=True, null=True)
 
     class Meta:
-        unique_together = ('name', 'tax_id')
+        verbose_name = "Proveedor"
+        verbose_name_plural = "Proveedores"
+        unique_together = ('nombre', 'id_fiscal')
 
     def __str__(self):
-        return f"{self.name} ({self.tax_id})" if self.tax_id else self.name
+        return f"{self.nombre} ({self.id_fiscal})" if self.id_fiscal else self.nombre
 
-class Invoice(models.Model):
-    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name='invoices')
-    invoice_number = models.CharField(max_length=128, db_index=True)
-    invoice_date = models.DateField(null=True, blank=True, db_index=True)
-    currency = models.CharField(max_length=8, default='ARS')
-    subtotal = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
-    total_tax = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
-    total = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
-    blob_url = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
 
-    # NEW: campos extraídos que no guardábamos aún
-    # Customer
-    customer_name = models.CharField(max_length=255, blank=True, null=True)
-    customer_tax_id = models.CharField(max_length=64, blank=True, null=True)
-    payment_term = models.CharField(max_length=100, blank=True, null=True)
-    customer_address = models.TextField(blank=True, null=True)
-    
-    # Invoice Dates
-    
-    due_date = models.DateField(blank=True, null=True)
-    service_start_date = models.DateField(blank=True, null=True)
-    service_end_date = models.DateField(blank=True, null=True)
+class Factura(models.Model):
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.PROTECT, related_name='facturas', verbose_name="Proveedor")
+    numero = models.CharField("Número de factura", max_length=128, db_index=True)
+    fecha = models.DateField("Fecha de factura", null=True, blank=True, db_index=True)
+    moneda = models.CharField("Moneda", max_length=8, default='ARS')
+    subtotal = models.DecimalField("Subtotal", max_digits=18, decimal_places=2, null=True, blank=True)
+    total_impuestos = models.DecimalField("Total impuestos", max_digits=18, decimal_places=2, null=True, blank=True)
+    total = models.DecimalField("Total", max_digits=18, decimal_places=2, null=True, blank=True)
+    url_blob = models.TextField("URL del blob")
+    creado_en = models.DateTimeField("Creado en", auto_now_add=True)
+
+    # Datos de cliente (extraídos, se guardan con nombres en español)
+    cliente_nombre = models.CharField("Nombre del cliente", max_length=255, blank=True, null=True)
+    cliente_id_fiscal = models.CharField("ID fiscal del cliente", max_length=64, blank=True, null=True)
+    cliente_direccion = models.TextField("Dirección del cliente", blank=True, null=True)
+
+    condicion_pago = models.CharField("Condición de pago", max_length=100, blank=True, null=True)
+
+    # Fechas extra
+    vencimiento = models.DateField("Vencimiento", blank=True, null=True)
+    servicio_desde = models.DateField("Servicio desde", blank=True, null=True)
+    servicio_hasta = models.DateField("Servicio hasta", blank=True, null=True)
 
     class Meta:
-        indexes = [models.Index(fields=['invoice_date'])]
-        unique_together = ('supplier', 'invoice_number')
+        verbose_name = "Factura"
+        verbose_name_plural = "Facturas"
+        indexes = [models.Index(fields=['fecha'])]
+        unique_together = ('proveedor', 'numero')
 
     def __str__(self):
-        return f"{self.invoice_number} - {self.supplier.name}"
+        return f"{self.numero} - {self.proveedor.nombre}"
 
-class InvoiceItem(models.Model):
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='items')
-    product_name = models.CharField(max_length=512, db_index=True)
-    quantity = models.DecimalField(max_digits=18, decimal_places=3, null=True, blank=True)
-    unit = models.CharField(max_length=32, blank=True, null=True)
-    unit_price = models.DecimalField(max_digits=18, decimal_places=4, null=True, blank=True)
-    line_total = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
-    product_code = models.CharField(max_length=128, blank=True, null=True)
-    item_date = models.DateField(null=True, blank=True)
+
+class ItemFactura(models.Model):
+    factura = models.ForeignKey(Factura, on_delete=models.CASCADE, related_name='items', verbose_name="Factura")
+    descripcion = models.CharField("Descripción del producto/servicio", max_length=512, db_index=True)
+    cantidad = models.DecimalField("Cantidad", max_digits=18, decimal_places=3, null=True, blank=True)
+    unidad = models.CharField("Unidad", max_length=32, blank=True, null=True)
+    precio_unitario = models.DecimalField("Precio unitario", max_digits=18, decimal_places=4, null=True, blank=True)
+    importe = models.DecimalField("Importe (línea)", max_digits=18, decimal_places=2, null=True, blank=True)
+    codigo_producto = models.CharField("Código de producto", max_length=128, blank=True, null=True)
+    fecha_item = models.DateField("Fecha del ítem", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Ítem de factura"
+        verbose_name_plural = "Ítems de factura"
 
     def __str__(self):
-        return f"{self.product_name} ({self.quantity} {self.unit or ''})"
+        return f"{self.descripcion} ({self.cantidad} {self.unidad or ''})"

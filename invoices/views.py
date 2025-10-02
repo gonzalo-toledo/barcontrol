@@ -10,7 +10,7 @@ from django.utils.dateparse import parse_date
 from django.utils.http import urlencode
 
 from .forms import UploadInvoiceForm
-from .models import Invoice, InvoiceItem, Supplier
+from .models import Factura, ItemFactura, Proveedor
 from .services import azure_blob
 from .services.azure_blob import normalize_filename
 from .services.azure_di import analyze_invoice_auto, debug_invoice_fields
@@ -74,53 +74,51 @@ def upload_invoice(request):
                     header = mapped.get("header", {}) or {}
 
                     # Supplier (catálogo)
-                    supplier, created = Supplier.objects.get_or_create(
-                        name=(header.get("vendor_name") or "SIN PROVEEDOR").strip(),
-                        tax_id=(header.get("vendor_tax_id") or None),
+                    proveedor, created = Proveedor.objects.get_or_create(
+                        nombre=(header.get("vendor_name") or "SIN PROVEEDOR").strip(),
+                        id_fiscal=(header.get("vendor_tax_id") or None),
                     )
-                    # actualizar datos del proveedor (address) si disponemos
                     sup_addr = header.get("vendor_address")
                     fields_to_update = []
-                    if sup_addr and supplier.address != sup_addr:
-                        supplier.address = sup_addr
-                        fields_to_update.append("address")
-
+                    if sup_addr and proveedor.direccion != sup_addr:
+                        proveedor.direccion = sup_addr
+                        fields_to_update.append("direccion")
                     if fields_to_update:
-                        supplier.save(update_fields=fields_to_update)
+                        proveedor.save(update_fields=fields_to_update)
 
-                    # Factura (cabecera)
-                    inv = Invoice.objects.create(
-                        supplier=supplier,
-                        invoice_number=header.get("invoice_id") or filename,
-                        invoice_date=_d(header.get("invoice_date")),
-                        currency="ARS",
+                    # Factura
+                    inv = Factura.objects.create(
+                        proveedor=proveedor,
+                        numero=header.get("invoice_id") or filename,
+                        fecha=_d(header.get("invoice_date")),
+                        moneda="ARS",
                         subtotal=header.get("subtotal") or None,
-                        total_tax=header.get("total_tax") or None,
+                        total_impuestos=header.get("total_tax") or None,
                         total=header.get("invoice_total") or None,
-                        blob_url=blob_url,
+                        url_blob=blob_url,
 
-                        # Extras que incorporaste
-                        customer_name=header.get("customer_name"),
-                        customer_tax_id=header.get("customer_tax_id"),
-                        customer_address=header.get("customer_address"),
+                        # Extras
+                        cliente_nombre=header.get("customer_name"),
+                        cliente_id_fiscal=header.get("customer_tax_id"),
+                        cliente_direccion=header.get("customer_address"),
 
-                        payment_term=header.get("payment_term"),
-                        due_date=_d(header.get("due_date")),
-                        service_start_date=_d(header.get("service_start_date")),
-                        service_end_date=_d(header.get("service_end_date")),
+                        condicion_pago=header.get("payment_term"),
+                        vencimiento=_d(header.get("due_date")),
+                        servicio_desde=_d(header.get("service_start_date")),
+                        servicio_hasta=_d(header.get("service_end_date")),
                     )
 
-                    # Ítems (si vienen)
+                    # Ítems
                     for it in mapped.get("items", []):
-                        InvoiceItem.objects.create(
-                            invoice=inv,
-                            product_name=it.get("description") or "(sin descripción)",
-                            quantity=it.get("quantity"),
-                            unit=(str(it.get("unit")) if it.get("unit") is not None else None),
-                            unit_price=it.get("unit_price"),
-                            line_total=it.get("amount"),
-                            product_code=it.get("product_code"),
-                            item_date=_d(it.get("date")),
+                        ItemFactura.objects.create(
+                            factura=inv,
+                            descripcion=it.get("description") or "(sin descripción)",
+                            cantidad=it.get("quantity"),
+                            unidad=(str(it.get("unit")) if it.get("unit") is not None else None),
+                            precio_unitario=it.get("unit_price"),
+                            importe=it.get("amount"),
+                            codigo_producto=it.get("product_code"),
+                            fecha_item=_d(it.get("date")),
                         )
 
                 return redirect("invoice_detail", pk=inv.pk)
@@ -167,6 +165,10 @@ def _parse_date(s):
 
 
 def _parse_decimal(s):
+    """
+    Convierte una cadena en Decimal o None.
+    - Devuelve None si está vacía, es inválida o si el tipo no es compatible.
+    """
     if not s:
         return None
     try:
@@ -186,37 +188,39 @@ def list_invoices(request):
     total_max  = _parse_decimal(request.GET.get("total_max"))
     item_q     = (request.GET.get("item") or "").strip()
 
-    qs = Invoice.objects.select_related("supplier").all()
+    # QuerySet base
+    qs = Factura.objects.select_related("proveedor").all()
 
+    # Filtros
     if supplier_q:
-        qs = qs.filter(supplier__name__icontains=supplier_q)
+        qs = qs.filter(proveedor__nombre__icontains=supplier_q)
     if number_q:
-        qs = qs.filter(invoice_number__icontains=number_q)
+        qs = qs.filter(numero__icontains=number_q)
     if date_from:
-        qs = qs.filter(invoice_date__gte=date_from)
+        qs = qs.filter(fecha__gte=date_from)
     if date_to:
-        qs = qs.filter(invoice_date__lte=date_to)
+        qs = qs.filter(fecha__lte=date_to)
     if total_min is not None:
         qs = qs.filter(total__gte=total_min)
     if total_max is not None:
         qs = qs.filter(total__lte=total_max)
 
-    # 🔎 filtro por ítems (descripción y/o código)
+    # 🔎 búsqueda por ítems (descripción / código)
     if item_q:
         qs = qs.filter(
-            Q(items__product_name__icontains=item_q) |
-            Q(items__product_code__icontains=item_q)
+            Q(items__descripcion__icontains=item_q) |
+            Q(items__codigo_producto__icontains=item_q)
         ).distinct()
 
-    qs = qs.order_by("-invoice_date", "-id")
+    qs = qs.order_by("-fecha", "-id")
+
+    # proveedores para selector
+    suppliers = Proveedor.objects.order_by("nombre").values_list("nombre", flat=True).distinct()
 
     # paginación
     page_number = request.GET.get("page") or 1
     paginator = Paginator(qs, 15)  # 15 filas por página
     page_obj = paginator.get_page(page_number)
-
-    # para el selector de proveedor (opcional)
-    suppliers = Supplier.objects.order_by("name").values_list("name", flat=True).distinct()
 
     # conservar los parámetros sin "page" para la paginación
     params_without_page = request.GET.dict()
@@ -234,19 +238,19 @@ def list_invoices(request):
 
 # --- nuevo: detalle ---
 def invoice_detail(request, pk: int):
-    inv = get_object_or_404(Invoice.objects.select_related('supplier').prefetch_related('items'), pk=pk)
+    inv = get_object_or_404(Factura.objects.select_related('proveedor').prefetch_related('items'), pk=pk)
     return render(request, "invoices/detail.html", {"inv": inv})
 
 # --- nuevo: ver original (SAS redirect) ---
 def invoice_view_original(request, pk: int):
-    inv = get_object_or_404(Invoice, pk=pk)
-    blob_name = azure_blob.to_blob_name_from_url(inv.blob_url)
+    inv = get_object_or_404(Factura, pk=pk)
+    blob_name = azure_blob.to_blob_name_from_url(inv.url_blob)
     sas = azure_blob.make_sas_url(settings.AZURE_BLOB_CONTAINER, blob_name, minutes=10)
     if not sas:
         # Fallback: servir desde Django (no ideal para archivos grandes)
         data = azure_blob.download_bytes(settings.AZURE_BLOB_CONTAINER, blob_name)
         from django.http import StreamingHttpResponse
-        ct = "application/pdf" if inv.blob_url.lower().endswith(".pdf") else "application/octet-stream"
+        ct = "application/pdf" if inv.url_blob.lower().endswith(".pdf") else "application/octet-stream"
         resp = StreamingHttpResponse(iter([data]), content_type=ct)
         resp["Content-Disposition"] = f'inline; filename="{blob_name}"'
         return resp
