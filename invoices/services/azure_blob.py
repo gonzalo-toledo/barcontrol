@@ -1,4 +1,4 @@
-import uuid
+import uuid 
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -70,6 +70,15 @@ def ensure_container(name: str):
         pass
 
 def upload_bytes(container: str, content: bytes, filename: str, content_type: str) -> str:
+    
+    #--- SIMULACIÓN ---
+    if getattr(settings, "USE_AZURE_SIMULATION", False):
+        print("MODO SIMULACIÓN ACTIVADO - Azure Blob no está siendo usado.")
+        blob_name = f"{uuid.uuid4()}-{filename}"
+        # Genera una URL ficticia que imita el formato de Azure
+        return f"https://simulacion.blob.core.windows.net/{container}/{blob_name}"
+    #--- FIN SIMULACIÓN ---
+    
     ensure_container(container)
     svc = _svc()
     blob_name = f"{uuid.uuid4()}-{filename}"

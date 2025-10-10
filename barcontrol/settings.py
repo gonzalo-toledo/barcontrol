@@ -145,3 +145,7 @@ DI_ANALYZE_MODE = os.getenv('DI_ANALYZE_MODE', 'auto')
 
 # Si 'auto': umbral para decidir bytes vs SAS por tamaño
 DI_INLINE_BYTES_MAX_MB = float(os.getenv('DI_INLINE_BYTES_MAX_MB', '5'))
+
+# Modo simulación (no hace llamadas a Azure)
+# Si esta en True,  el sistema no se conecta con Azure y usa datos de prueba
+USE_AZURE_SIMULATION = True

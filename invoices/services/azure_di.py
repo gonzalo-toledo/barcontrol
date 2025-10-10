@@ -1,8 +1,10 @@
 from django.conf import settings
+
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
 from .azure_blob import to_blob_name_from_url, make_sas_url
+
 
 def _di_client() -> DocumentIntelligenceClient:
     if not settings.AZ_DOCINT_ENDPOINT or not settings.AZ_DOCINT_KEY:
@@ -28,12 +30,89 @@ def analyze_invoice_from_bytes(data: bytes):
 def analyze_invoice_auto(data: bytes, blob_url: str):
     """
     Política:
-    - DI_ANALYZE_MODE = 'sas': intenta SAS -> fallback bytes
-    - DI_ANALYZE_MODE = 'bytes': bytes directo
-    - DI_ANALYZE_MODE = 'auto' (default):
-        * si len(data) <= DI_INLINE_BYTES_MAX_MB -> bytes
-        * si > umbral -> intenta SAS -> fallback bytes
+    - Si USE_AZURE_SIMULATION está activo, devuelve datos simulados.
+    - Si no, se conecta normalmente a Azure:
+        - DI_ANALYZE_MODE = 'sas': intenta SAS -> fallback bytes
+        - DI_ANALYZE_MODE = 'bytes': bytes directo
+        - DI_ANALYZE_MODE = 'auto' (default):
+            * si len(data) <= DI_INLINE_BYTES_MAX_MB -> bytes
+            * si > umbral -> intenta SAS -> fallback bytes
     """
+    
+    # Modo simulación:
+    if getattr(settings, "USE_AZURE_SIMULATION", False):
+        print("MODO SIMULACIÓN ACTIVADO - Azure DI no está siendo usado.")
+        from types import SimpleNamespace
+        import datetime
+
+        # Estructura simulada compatible con map_invoice_result
+        class FakeValue:
+            def __init__(self, content=None, value=None):
+                self.content = content or value
+                self.value = value or content
+                self.confidence = 0.99
+
+        # Clase que imita exactamente los campos de Azure
+    class FakeField:
+        def __init__(
+            self,
+            value_string=None,
+            value_number=None,
+            value_currency=None,
+            value_date=None,
+            value_address=None,
+        ):
+            self.value_string = value_string
+            self.value_number = value_number
+            self.value_currency = (
+                SimpleNamespace(amount=value_currency) if value_currency else None
+            )
+            self.value_date = value_date
+            self.value_address = value_address
+            self.confidence = 0.99
+
+    # Ítems simulados
+    fake_items = [
+        SimpleNamespace(
+            value_object={
+                "Description": FakeField(value_string="Producto Demo A"),
+                "Quantity": FakeField(value_number=2),
+                "UnitPrice": FakeField(value_currency=5000.0),
+                "Amount": FakeField(value_currency=10000.0),
+            }
+        ),
+        SimpleNamespace(
+            value_object={
+                "Description": FakeField(value_string="IVA 21%"),
+                "Quantity": FakeField(value_number=1),
+                "UnitPrice": FakeField(value_currency=2100.0),
+                "Amount": FakeField(value_currency=2100.0),
+            }
+        ),
+    ]
+
+    # Campos principales simulados
+    fake_fields = {
+        "VendorName": FakeField(value_string="Proveedor Demo SRL"),
+        "VendorTaxId": FakeField(value_string="30-12345678-9"),
+        "VendorAddress": FakeField(value_address="Calle Falsa 123"),
+        "InvoiceId": FakeField(value_string="F0001-000123"),
+        "InvoiceDate": FakeField(value_date=datetime.date(2025, 9, 15)),
+        "SubTotal": FakeField(value_currency=10000.0),
+        "TotalTax": FakeField(value_currency=2100.0),
+        "InvoiceTotal": FakeField(value_currency=12100.0),
+        "PaymentTerm": FakeField(value_string="Contado"),
+        "Items": SimpleNamespace(value_array=fake_items),
+    }
+
+    fake_doc = SimpleNamespace(
+        documents=[SimpleNamespace(fields=fake_fields)]
+    )
+    return fake_doc
+    # --- FIN SIMULACIÓN ---
+
+    # --- FLUJO NORMAL CON AZURE ---
+    
     mode = getattr(settings, "DI_ANALYZE_MODE", "auto")
     mb = len(data) / (1024 * 1024)
     threshold = float(getattr(settings, "DI_INLINE_BYTES_MAX_MB", 5.0))
