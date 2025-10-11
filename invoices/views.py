@@ -2,6 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
+# from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
@@ -9,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_date
 from django.utils.http import urlencode
 
-from .forms import UploadInvoiceForm
+from .forms import UploadInvoiceForm, PreviewInvoiceForm
 from .models import Factura, ItemFactura, Proveedor
 from .services import azure_blob
 from .services.azure_blob import normalize_filename
@@ -23,11 +24,24 @@ def _d(s):  # parsea ISO a date o None
         return s
     return parse_date(str(s))
 
+# Conversión a tipos seguros para JSON (floats y strings)
+def convert_to_json_safe(obj):
+    if isinstance(obj, dict):
+        return {k: convert_to_json_safe(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_to_json_safe(v) for v in obj]
+    elif isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, (date, datetime)):
+        return obj.isoformat()
+    return obj
+
+            
+# @login_required
 def upload_invoice(request):
     """
     Sube una factura a Blob, la analiza con Document Intelligence usando política automática
-    (SAS preferente + fallback a bytes según umbral/tipo de error), mapea los datos y
-    persiste en DB. Si algo falla al guardar, muestra previsualización con el error.
+    (SAS preferente + fallback a bytes según umbral/tipo de error) y muestra previsualización ANTES de guardar.
     """
     if request.method == "POST":
         form = UploadInvoiceForm(request.POST, request.FILES)
@@ -42,7 +56,7 @@ def upload_invoice(request):
             # 1) Subir a Blob (conservar original)
             try:
                 
-                safe_filename = normalize_filename(upfile.name)
+                safe_filename = normalize_filename(filename)
 
                 blob_url = azure_blob.upload_bytes(
                     settings.AZURE_BLOB_CONTAINER, data, safe_filename, content_type
@@ -65,93 +79,123 @@ def upload_invoice(request):
 
             # 2.5) Mapear a estructura liviana (solo tipos JSON-friendly)
             mapped = map_invoice_result(di_result)
-            request.session["last_blob_url"] = blob_url
-            request.session["last_result"] = mapped
+            mapped_safe = convert_to_json_safe(mapped)
 
-            # 3) Guardar en DB (sin pantalla de corrección por ahora)
-            try:
-                with transaction.atomic():
-                    header = mapped.get("header", {}) or {}
+            # Guardar resultados en sesión (modo simulación o Azure indistinto)
+            request.session["preview_blob_url"] = blob_url
+            request.session["preview_data"] = mapped_safe
 
-                    # Supplier (catálogo)
-                    proveedor, created = Proveedor.objects.get_or_create(
-                        nombre=(header.get("vendor_name") or "SIN PROVEEDOR").strip(),
-                        id_fiscal=(header.get("vendor_tax_id") or None),
-                    )
-                    sup_addr = header.get("vendor_address")
-                    fields_to_update = []
-                    if sup_addr and proveedor.direccion != sup_addr:
-                        proveedor.direccion = sup_addr
-                        fields_to_update.append("direccion")
-                    if fields_to_update:
-                        proveedor.save(update_fields=fields_to_update)
+            return redirect("preview_invoice")
 
-                    # Factura
-                    inv = Factura.objects.create(
-                        proveedor=proveedor,
-                        numero=header.get("invoice_id") or filename,
-                        fecha=_d(header.get("invoice_date")),
-                        moneda="ARS",
-                        subtotal=header.get("subtotal") or None,
-                        total_impuestos=header.get("total_tax") or None,
-                        total=header.get("invoice_total") or None,
-                        url_blob=blob_url,
-
-                        # Extras
-                        cliente_nombre=header.get("customer_name"),
-                        cliente_id_fiscal=header.get("customer_tax_id"),
-                        cliente_direccion=header.get("customer_address"),
-
-                        condicion_pago=header.get("payment_term"),
-                        vencimiento=_d(header.get("due_date")),
-                        servicio_desde=_d(header.get("service_start_date")),
-                        servicio_hasta=_d(header.get("service_end_date")),
-                    )
-
-                    # Ítems
-                    for it in mapped.get("items", []):
-                        ItemFactura.objects.create(
-                            factura=inv,
-                            descripcion=it.get("description") or "(sin descripción)",
-                            cantidad=it.get("quantity"),
-                            unidad=(str(it.get("unit")) if it.get("unit") is not None else None),
-                            precio_unitario=it.get("unit_price"),
-                            importe=it.get("amount"),
-                            codigo_producto=it.get("product_code"),
-                            fecha_item=_d(it.get("date")),
-                        )
-
-                return redirect("invoice_detail", pk=inv.pk)
-
-            except Exception as ex:
-                # Si algo falla al guardar, mostramos preview con info extraída
-                return render(request, "invoices/preview.html", {
-                    "blob_url": blob_url,
-                    "header": mapped.get("header"),
-                    "items": mapped.get("items"),
-                    "error": f"Guardado falló: {ex}",
-                })
     else:
         form = UploadInvoiceForm()
 
     return render(request, "invoices/upload.html", {"form": form})
 
 
+# @login_required
 def preview_invoice(request):
-    ctx = {
-        "blob_url": request.session.get("last_blob_url"),
-        "header": None,
-        "items": None,
-        "error": None
-    }
-    mapped = request.session.get("last_result")
+    """
+    Muestra los datos detectados por la IA antes de guardar la factura
+    """
+    
+    blob_url = request.session.get("preview_blob_url")
+    mapped = request.session.get("preview_data")
+    
     if not mapped:
-        ctx["error"] = "No hay un resultado reciente para mostrar."
-        return render(request, "invoices/preview.html", ctx)
+        return render (
+            request,
+            "invoices/preview.html",
+            {"error": "No hay resultados para mostrar. Subí una factura nuevamente."},  
+        )
+        
+    header = mapped.get("header", {})
+    items = mapped.get("items", [])
+    
+    # Si el usuario confirma, redirigue a confirm_invoice    
+    if request.method == "POST":
+        form = PreviewInvoiceForm(request.POST)
+        if form.is_valid():
+            # Reemplaza los valores detectados por los corregidos del usuario
+            header["vendor_name"] = form.cleaned_data["proveedor"]
+            header["invoice_id"] = form.cleaned_data["numero"]
+            header["invoice_date"] = form.cleaned_data["fecha"].isoformat() if form.cleaned_data["fecha"] else None
+            header["subtotal"] = form.cleaned_data["subtotal"]
+            header["total_impuestos"] = form.cleaned_data["total_impuestos"]
+            header["invoice_total"] = form.cleaned_data["total"]
 
-    ctx["header"] = mapped.get("header")
-    ctx["items"] = mapped.get("items", [])
-    return render(request, "invoices/preview.html", ctx)
+            # Guardar correcciones en la sesión antes de confirmar
+            mapped["header"] = header
+            
+            # converetir a JSON-safe antes de guardar
+            mapped_safe = convert_to_json_safe(mapped)
+            request.session["preview_data"] = mapped_safe
+
+            return redirect("confirm_invoice")
+    else:
+        form = PreviewInvoiceForm(initial={
+            "proveedor": header.get("vendor_name"),
+            "numero": header.get("invoice_id"),
+            "fecha": header.get("invoice_date"),
+            "subtotal": header.get("subtotal"),
+            "total_impuestos": header.get("total_tax"),
+            "total": header.get("invoice_total"),
+        })
+    
+    return render(
+        request,
+        "invoices/preview.html",
+        {"form": form, "items": items, "blob_url": blob_url},
+    )
+    
+
+# @login_required
+def confirm_invoice(request):
+    """
+    Crea la factura y sus items en la base de datos usando los datos analizados
+    """
+
+    blob_url = request.session.get("preview_blob_url")
+    mapped = request.session.get("preview_data")
+
+    if not mapped:
+        return redirect("upload_invoice")
+    
+    header = mapped.get("header", {})
+    items = mapped.get("items", [])
+    
+    with transaction.atomic():
+        proveedor, _ = Proveedor.objects.get_or_create(
+            nombre=header.get("vendor_name") or "SIN PROVEEDOR",
+            id_fiscal=header.get("vendor_tax_id") or None,
+        )
+
+        factura = Factura.objects.create(
+            proveedor=proveedor,
+            numero=header.get("invoice_id") or "SIN NÚMERO",
+            fecha=parse_date(header.get("invoice_date")) if header.get("invoice_date") else None,
+            subtotal=header.get("subtotal") or 0,
+            total_impuestos=header.get("total_tax") or 0,
+            total=header.get("invoice_total") or 0,
+            url_blob=blob_url,
+        )
+
+        for it in items:
+            ItemFactura.objects.create(
+                factura=factura,
+                descripcion=it.get("description"),
+                cantidad=it.get("quantity") or 0,
+                unidad=it.get("unit"),
+                precio_unitario=it.get("unit_price") or 0,
+                importe=it.get("amount") or 0,
+                codigo_producto=it.get("product_code"),
+            )
+
+    # limpiar sesión
+    request.session.pop("preview_data", None)
+    request.session.pop("preview_blob_url", None)
+
+    return redirect("invoice_detail", pk=factura.pk) 
 
 
 def _parse_date(s):
