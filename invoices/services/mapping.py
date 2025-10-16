@@ -1,6 +1,8 @@
 from typing import Any, Dict, List
 from datetime import date, datetime
 
+
+# --- Funciones auxiliares ---
 def _to_iso(d):
     if isinstance(d, (date, datetime)):
         return d.isoformat()
@@ -10,7 +12,12 @@ def _address_to_str(addr):
     if not addr:
         return None
     # arma una línea legible; ajustá a gusto
-    parts = [getattr(addr, "house_number", None), getattr(addr, "road", None), getattr(addr, "city", None), getattr(addr, "unit", None)]
+    parts = [
+        getattr(addr, "house_number", None), 
+        getattr(addr, "road", None), 
+        getattr(addr, "city", None), 
+        getattr(addr, "unit", None)
+    ]
     s = " ".join([p for p in parts if p]).strip()
     return s or getattr(addr, "street_address", None) or None
 
@@ -30,7 +37,24 @@ def _field_value(fields: dict, name: str, kind: str):
             return getattr(f, kind, None), f.confidence
     except Exception:
         return None, None
+    
+    
+# --- calificador de tipo de item ---
+def calificar_item(descripcion: str) -> str:
+    """
+    Detecta si el item es un producto, impuesto o subtotal/total
+    """
+    if not descripcion:
+        return "producto"
+    desc = descripcion.lower()
+    if any(p in desc for p in ["iva", "impuesto","retención", "retencion", "percepción", "percepcion"]):
+        return "impuesto"
+    if any(p in desc for p in ["subtotal", "total", "saldo"]):
+        return "resumen"
+    return "producto"
+        
 
+# --- Mapeo general ---
 def map_invoice_result(di_result) -> Dict[str, Any]:
     if not di_result or not di_result.documents:
         return {"header": {}, "items": []}
@@ -38,6 +62,7 @@ def map_invoice_result(di_result) -> Dict[str, Any]:
     inv = di_result.documents[0]
     fields = inv.fields or {}
 
+    # cabecera
     vendor_name, vendor_name_c = _field_value(fields, "VendorName", "value_string")
     vendor_tax_id, _ = _field_value(fields, "VendorTaxId", "value_string")
     vendor_address, _ = _field_value(fields, "VendorAddress", "value_address")
@@ -77,8 +102,12 @@ def map_invoice_result(di_result) -> Dict[str, Any]:
                     return val
                 except Exception:
                     return None
+                
+            desc = gv("Description", "value_string")
+            tipo = calificar_item(desc)
+                
             items_list.append({
-                "description": gv("Description", "value_string"),
+                "description": desc,
                 "quantity": gv("Quantity", "value_number"),
                 "unit": gv("Unit", "value_string") or gv("Unit", "value_number"),
                 "unit_price": gv("UnitPrice", "value_currency"),
@@ -86,8 +115,10 @@ def map_invoice_result(di_result) -> Dict[str, Any]:
                 "product_code": gv("ProductCode", "value_string"),
                 "date": gv("Date", "value_date"),
                 "tax": gv("Tax", "value_string"),
+                "tipo:item": tipo,
             })
 
+    # Resultado final
     return {
         "header": {
             "vendor_name": vendor_name,

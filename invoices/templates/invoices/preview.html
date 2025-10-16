@@ -14,29 +14,47 @@
       <h3>Datos del encabezado</h3>
       {{ form.as_p }}
 
-      <h3>Items detectados</h3>
+      <h3>Ítems detectados</h3>
       <table class="table">
         <thead>
           <tr>
             <th>Descripción</th>
-            <th>Cantidad</th>
-            <th>Precio Unit.</th>
+            <th>Cant.</th>
+            <th>Unitario</th>
             <th>Importe</th>
+            <th>Producto</th>
           </tr>
         </thead>
         <tbody>
           {% for item in items %}
             <tr>
-              <td>{{ item.description }}</td>
-              <td>{{ item.quantity }}</td>
-              <td>{{ item.unit_price }}</td>
-              <td>{{ item.amount }}</td>
+              <td>{{ item.data.description }}</td>
+              <td>{{ item.data.quantity }}</td>
+              <td>{{ item.data.unit_price }}</td>
+              <td>{{ item.data.amount }}</td>
+              <td>
+                {% if item.producto %}
+                  ✅ {{ item.producto.nombre }}
+                  <input type="hidden" name="producto_{{ item.index }}" value="{{ item.producto.id }}">
+                {% else %}
+                  <select name="producto_{{ item.index }}">
+                    <option value="">-- Seleccionar producto --</option>
+                    {% for prod in productos %}
+                      <option value="{{ prod.id }}">{{ prod.nombre }}</option>
+                    {% endfor %}
+                  </select>
+                  <a href="">Nuevo producto</a>
+                {% endif %}
+              </td>
             </tr>
           {% empty %}
-            <tr><td colspan="4">No se detectaron ítems.</td></tr>
+            <tr><td colspan="5">No se detectaron ítems.</td></tr>
           {% endfor %}
         </tbody>
+
+
       </table>
+
 
       <div style="display:flex; gap:.75rem; margin-top:1rem;">
         <button type="submit" class="btn btn-primary">Confirmar y guardar</button>

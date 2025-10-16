@@ -39,7 +39,9 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
             * si > umbral -> intenta SAS -> fallback bytes
     """
     
-    # Modo simulación:
+    # -------------------------------------------------------------
+    # MODO SIMULACIÓN
+    # -------------------------------------------------------------
     if getattr(settings, "USE_AZURE_SIMULATION", False):
         print("⚙️  MODO SIMULACIÓN ACTIVADO - Azure DI no está siendo usado.")
         from types import SimpleNamespace
@@ -69,33 +71,62 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
         fake_items = [
             SimpleNamespace(
                 value_object={
-                    "Description": FakeField(value_string="Producto Demo A"),
-                    "Quantity": FakeField(value_number=2),
-                    "UnitPrice": FakeField(value_currency=5000.0),
-                    "Amount": FakeField(value_currency=10000.0),
+                    "Description": FakeField(value_string="Aceite Natura 1L"),
+                    "Quantity": FakeField(value_number=6),
+                    "UnitPrice": FakeField(value_currency=1300.0),
+                    "Amount": FakeField(value_currency=7800.0),
                 }
             ),
             SimpleNamespace(
                 value_object={
-                    "Description": FakeField(value_string="IVA 21%"),
-                    "Quantity": FakeField(value_number=1),
+                    "Description": FakeField(value_string="Yerba Mate Playadito 1kg"),
+                    "Quantity": FakeField(value_number=3),
                     "UnitPrice": FakeField(value_currency=2100.0),
-                    "Amount": FakeField(value_currency=2100.0),
+                    "Amount": FakeField(value_currency=6300.0),
+                }
+            ),
+            SimpleNamespace(
+                value_object={
+                    "Description": FakeField(value_string="Harina Pureza 000 1kg"),
+                    "Quantity": FakeField(value_number=10),
+                    "UnitPrice": FakeField(value_currency=950.0),
+                    "Amount": FakeField(value_currency=9500.0),
+                }
+            ),
+            SimpleNamespace(
+                value_object={
+                    "Description": FakeField(value_string="Fideos Lucchetti Spaghetti 500g"),
+                    "Quantity": FakeField(value_number=12),
+                    "UnitPrice": FakeField(value_currency=750.0),
+                    "Amount": FakeField(value_currency=9000.0),
+                }
+            ),
+            SimpleNamespace(
+                value_object={
+                    "Description": FakeField(value_string="Coca-Cola 1.5L"),
+                    "Quantity": FakeField(value_number=8),
+                    "UnitPrice": FakeField(value_currency=1800.0),
+                    "Amount": FakeField(value_currency=14400.0),
                 }
             ),
         ]
 
+        # Totales coherentes (para encabezado)
+        subtotal = sum(it.value_object["Amount"].value_currency.amount for it in fake_items)
+        total_tax = round(subtotal * 0.21, 2)
+        total = subtotal + total_tax
+
         # --- Campos principales simulados ---
         fake_fields = {
-            "VendorName": FakeField(value_string="Proveedor Demo SRL"),
-            "VendorTaxId": FakeField(value_string="30-12345678-9"),
-            "VendorAddress": FakeField(value_address="Calle Falsa 123"),
-            "InvoiceId": FakeField(value_string="F0001-000123"),
-            "InvoiceDate": FakeField(value_date=datetime.date(2025, 9, 15)),
-            "SubTotal": FakeField(value_currency=10000.0),
-            "TotalTax": FakeField(value_currency=2100.0),
-            "InvoiceTotal": FakeField(value_currency=12100.0),
-            "PaymentTerm": FakeField(value_string="Contado"),
+            "VendorName": FakeField(value_string="Distribuidora Río Cuarto SRL"),
+            "VendorTaxId": FakeField(value_string="30-87654321-0"),
+            "VendorAddress": FakeField(value_address="Av. Italia 950"),
+            "InvoiceId": FakeField(value_string="B0002-000456"),
+            "InvoiceDate": FakeField(value_date=datetime.date(2025, 10, 12)),
+            "SubTotal": FakeField(value_currency=subtotal),
+            "TotalTax": FakeField(value_currency=total_tax),
+            "InvoiceTotal": FakeField(value_currency=total),
+            "PaymentTerm": FakeField(value_string="Cuenta Corriente 30 días"),
             "Items": SimpleNamespace(value_array=fake_items),
         }
 
@@ -104,6 +135,7 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
         )
 
         return fake_doc
+
     # --- FIN SIMULACIÓN ---
 
     # --- FLUJO NORMAL CON AZURE ---

@@ -162,6 +162,12 @@ class Factura(models.Model):
 # ÍTEM FACTURA
 # -------------------------------------------------------------
 class ItemFactura(models.Model):
+    TIPO_CHOICES = [
+        ("producto", "producto/servicio"),
+        ("impuesto", "Impuesto/Retención"),
+        ("resumen", "Subtotal/Total"),
+    ]
+    
     factura = models.ForeignKey(Factura, on_delete=models.CASCADE, related_name="items")
     producto = models.ForeignKey("Producto", null=True, blank=True, on_delete=models.SET_NULL)
 
@@ -174,6 +180,12 @@ class ItemFactura(models.Model):
 
     alic_iva = models.DecimalField("Alicuota IVA (%)", max_digits=5, decimal_places=2, null=True, blank=True)
     codigo_fiscal = models.CharField("Código ARCA / fiscal", max_length=10, null=True, blank=True)
+    
+    tipo_item = models.CharField(
+        max_length=20, 
+        choices=TIPO_CHOICES,
+        default="producto",
+    )
 
     class Meta:
         verbose_name = "Ítem de factura"
