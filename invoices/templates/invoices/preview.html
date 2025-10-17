@@ -1,4 +1,4 @@
-{% extends "invoices/base.html" %}
+{% extends "base.html" %}
 {% block title %}Revisión de Factura{% endblock %}
 
 {% block content %}
@@ -43,7 +43,7 @@
                       <option value="{{ prod.id }}">{{ prod.nombre }}</option>
                     {% endfor %}
                   </select>
-                  <a href="">Nuevo producto</a>
+                  <a href="{% url 'productos_create' %}">Nuevo producto</a>
                 {% endif %}
               </td>
             </tr>

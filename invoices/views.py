@@ -11,7 +11,9 @@ from django.utils.dateparse import parse_date
 from django.utils.http import urlencode
 
 from .forms import UploadInvoiceForm, PreviewInvoiceForm
-from .models import Factura, ItemFactura, Proveedor, Producto, TipoComprobante, CondicionPago 
+from .models import Factura, ItemFactura, TipoComprobante, CondicionPago
+from productos.models import Producto
+from proveedores.models import Proveedor 
 from .services import azure_blob
 from .services.azure_blob import normalize_filename
 from .services.azure_di import analyze_invoice_auto, debug_invoice_fields
@@ -176,8 +178,10 @@ def preview_invoice(request):
             header["subtotal"] = form.cleaned_data["subtotal"]
             header["total_tax"] = form.cleaned_data["total_impuestos"]
             header["invoice_total"] = form.cleaned_data["total"]
+            
             mapped["header"] = header
-            request.session["preview_data"] = mapped
+            mapped_safe = convert_to_json_safe(mapped)
+            request.session["preview_data"] = mapped_safe
 
             # Revalidar duplicado
             if avisos["factura_duplicada"]:

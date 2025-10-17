@@ -1,35 +1,9 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from productos.models import Producto
+from proveedores.models import Proveedor
 
 User = get_user_model()
-
-
-# -------------------------------------------------------------
-# PRODUCTO
-# -------------------------------------------------------------
-class Producto(models.Model):
-    nombre = models.CharField(max_length=255)
-    codigo_interno = models.CharField(max_length=64, null=True, blank=True)   # tu SKU interno
-    codigo_proveedor = models.CharField(max_length=64, null=True, blank=True) # código que viene en la factura
-    codigo_barras = models.CharField(max_length=64, null=True, blank=True)
-    categoria = models.CharField(max_length=128, null=True, blank=True)
-    marca = models.CharField(max_length=128, null=True, blank=True)
-    unidad_base = models.CharField(max_length=20, null=True, blank=True)      # ej: un, kg, lt
-    activo = models.BooleanField(default=True)
-
-    class Meta:
-        verbose_name = "Producto"
-        verbose_name_plural = "Productos"
-        indexes = [
-            models.Index(fields=["codigo_interno"]),
-            models.Index(fields=["codigo_proveedor"]),
-            models.Index(fields=["codigo_barras"]),
-            models.Index(fields=["nombre"]),
-        ]
-        ordering = ["nombre"]
-
-    def __str__(self):
-        return self.nombre
 
 
 # -------------------------------------------------------------
@@ -75,29 +49,6 @@ class CondicionPago(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.dias} días)"
-
-
-# -------------------------------------------------------------
-# PROVEEDOR
-# -------------------------------------------------------------
-class Proveedor(models.Model):
-    nombre = models.CharField(max_length=255)
-    id_fiscal = models.CharField("CUIT / ID Fiscal", max_length=20, null=True, blank=True)
-    condicion_iva = models.ForeignKey(
-        "CondicionIVA", null=True, blank=True, on_delete=models.SET_NULL
-    )
-    direccion = models.CharField(max_length=255, null=True, blank=True)
-    email = models.EmailField(null=True, blank=True)
-    telefono = models.CharField(max_length=50, null=True, blank=True)
-
-    class Meta:
-        verbose_name = "Proveedor"
-        verbose_name_plural = "Proveedores"
-        unique_together = [("nombre", "id_fiscal")]
-        ordering = ["nombre"]
-
-    def __str__(self):
-        return f"{self.nombre} ({self.id_fiscal or 's/ID'})"
 
 
 # -------------------------------------------------------------
@@ -169,7 +120,7 @@ class ItemFactura(models.Model):
     ]
     
     factura = models.ForeignKey(Factura, on_delete=models.CASCADE, related_name="items")
-    producto = models.ForeignKey("Producto", null=True, blank=True, on_delete=models.SET_NULL)
+    producto = models.ForeignKey(Producto, null=True, blank=True, on_delete=models.SET_NULL)
 
     descripcion = models.CharField(max_length=255, null=True, blank=True)
     codigo_producto = models.CharField(max_length=64, null=True, blank=True)
