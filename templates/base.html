@@ -6,21 +6,25 @@
   <title>{% block title %}Sistema de Gestión{% endblock %}</title>
   <style>
     :root { --bg:#f8f9fa; --fg:#212529; --muted:#6c757d; --card:#fff; --b:#dee2e6; --primary:#0d6efd; --success:#198754; }
-    *{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--fg);line-height:1.5}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--fg);line-height:1.5}
     header{background:var(--card);border-bottom:1px solid var(--b);padding:1rem 0}
     .wrap{max-width:1200px;margin:0 auto;padding:0 20px}
     nav a{color:var(--muted);text-decoration:none;margin-right:1rem}
     nav a:hover{color:var(--fg)}
-    .btn{display:inline-block;padding:.6rem 1rem;border-radius:6px;text-decoration:none;font-weight:600;border:1px solid var(--b);background:#fff;color:var(--fg)}
+    .btn{display:inline-block;padding:.5rem 1rem;border-radius:6px;text-decoration:none;font-weight:600;border:1px solid var(--b);background:#fff;color:var(--fg);transition:background .2s}
+    .btn:hover{background:#f2f2f2}
     .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
-    .btn-success{background:var(--success);border-color:var(--success);color:#fff}
     .card{background:var(--card);border:1px solid var(--b);border-radius:8px}
     .card.pad{padding:1.25rem}
     .grid{display:grid;gap:1rem}
-    .muted{color:var(--muted)} .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-    table{width:100%;border-collapse:collapse} th,td{padding:.75rem;border-bottom:1px solid var(--b);vertical-align:top}
+    .muted{color:var(--muted)}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:.75rem;border-bottom:1px solid var(--b);vertical-align:top}
     th{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left}
-    .right{text-align:right} .center{text-align:center}
+    .right{text-align:right}
+    .center{text-align:center}
     .section{margin:1.25rem 0}
     form .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem}
     input,select{width:100%;padding:.6rem;border:1px solid var(--b);border-radius:6px;background:#fff}
@@ -33,13 +37,35 @@
 <header>
   <div class="wrap" style="display:flex;justify-content:space-between;align-items:center;gap:1rem">
     <div><strong>Sistema de Gestión</strong></div>
-    <nav>
-      <a href="{% url 'upload_invoice' %}">Cargar factura</a>
-      <a href="{% url 'list_invoices' %}">Listado de facturas</a>
-      <a href="{% url 'productos_list' %}">Productos</a>
-      <a href="{% url 'proveedores_list' %}">Proveedores</a>
-    </nav>
+
+    {% if request.user.is_authenticated %}
+      <nav style="display:flex;align-items:center;gap:1rem;">
+        <a href="{% url 'upload_invoice' %}">Cargar factura</a>
+        <a href="{% url 'list_invoices' %}">Listado de facturas</a>
+        <a href="{% url 'productos_list' %}">Productos</a>
+        <a href="{% url 'proveedores_list' %}">Proveedores</a>
+
+        <span class="muted" style="margin-left:1rem;">
+          👤 {{ request.user.username }}
+        </span>
+        <a href="{% url 'logout' %}" class="btn" style="margin-left:.5rem;">Cerrar sesión</a>
+      </nav>
+    {% endif %}
   </div>
+
+    <!-- Mensajes de alerta -->
+  {% if messages %}
+    <div style="margin: 1rem 0">
+      {% for message in messages %}
+        <div style="padding: 10px; border-radius: 6px;
+                    background-color: {% if message.tags == 'success' %}#e6ffed{% elif message.tags == 'error' %}#ffe5e5{% else %}#f1f1f1{% endif %};
+                    border: 1px solid #ccc;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
 </header>
 
 <main class="wrap" style="margin:2rem auto">

@@ -1,0 +1,11 @@
+[
+    {"model": "invoices.condicioniva", "pk": 1, "fields": {"nombre": "Responsable Inscripto", "descripcion": "Sujeto inscripto en IVA", "activo": true}},
+    {"model": "invoices.condicioniva", "pk": 2, "fields": {"nombre": "Monotributista", "descripcion": "Pequeño contribuyente bajo régimen simplificado", "activo": true}},
+    {"model": "invoices.condicioniva", "pk": 3, "fields": {"nombre": "Exento", "descripcion": "Exento del impuesto al valor agregado", "activo": true}},
+    {"model": "invoices.condicioniva", "pk": 4, "fields": {"nombre": "Consumidor Final", "descripcion": "Consumidor sin obligación de facturar", "activo": true}},
+    {"model": "invoices.condicioniva", "pk": 5, "fields": {"nombre": "No Responsable", "descripcion": "No obligado a tributar IVA", "activo": true}},
+    {"model": "invoices.condicioniva", "pk": 6, "fields": {"nombre": "Sujeto no Categorizado", "descripcion": "Sin categoría asignada en el sistema", "activo": true}},
+    {"model": "invoices.condicioniva", "pk": 7, "fields": {"nombre": "Responsable Monotributo Social", "descripcion": "Régimen social simplificado", "activo": true}},
+    {"model": "invoices.condicioniva", "pk": 8, "fields": {"nombre": "IVA Liberado - Ley 19.640", "descripcion": "Excepción impositiva por ley de promoción industrial", "activo": true}},
+    {"model": "invoices.condicioniva", "pk": 9, "fields": {"nombre": "Responsable no Inscripto", "descripcion": "Sujeto alcanzado sin inscripción activa", "activo": true}}
+]

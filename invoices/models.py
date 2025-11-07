@@ -98,6 +98,7 @@ class Factura(models.Model):
         verbose_name = "Factura"
         verbose_name_plural = "Facturas"
         ordering = ["-fecha", "-id"]
+        unique_together = ["proveedor","tipo_comprobante", "punto_venta", "numero"]
         indexes = [
             models.Index(fields=["fecha"]),
             models.Index(fields=["numero"]),

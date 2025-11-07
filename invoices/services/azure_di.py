@@ -42,6 +42,7 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
     # -------------------------------------------------------------
     # MODO SIMULACIÓN
     # -------------------------------------------------------------
+    # --- MODO SIMULACIÓN (actualizado con campos argentinos) ---
     if getattr(settings, "USE_AZURE_SIMULATION", False):
         print("⚙️  MODO SIMULACIÓN ACTIVADO - Azure DI no está siendo usado.")
         from types import SimpleNamespace
@@ -67,7 +68,7 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
                 self.value_address = value_address
                 self.confidence = 0.99
 
-        # --- Ítems simulados ---
+        # --- Ítems simulados (sin IVA) ---
         fake_items = [
             SimpleNamespace(
                 value_object={
@@ -111,7 +112,7 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
             ),
         ]
 
-        # Totales coherentes (para encabezado)
+        # --- Totales coherentes ---
         subtotal = sum(it.value_object["Amount"].value_currency.amount for it in fake_items)
         total_tax = round(subtotal * 0.21, 2)
         total = subtotal + total_tax
@@ -121,12 +122,21 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
             "VendorName": FakeField(value_string="Distribuidora Río Cuarto SRL"),
             "VendorTaxId": FakeField(value_string="30-87654321-0"),
             "VendorAddress": FakeField(value_address="Av. Italia 950"),
-            "InvoiceId": FakeField(value_string="B0002-000456"),
+            "InvoiceId": FakeField(value_string="000456"),
             "InvoiceDate": FakeField(value_date=datetime.date(2025, 10, 12)),
             "SubTotal": FakeField(value_currency=subtotal),
             "TotalTax": FakeField(value_currency=total_tax),
             "InvoiceTotal": FakeField(value_currency=total),
             "PaymentTerm": FakeField(value_string="Cuenta Corriente 30 días"),
+
+            # --- Campos argentinos / fiscales ---
+            "InvoiceType": FakeField(value_string="B"),  # tipo comprobante
+            "PointOfSale": FakeField(value_string="0002"),
+            "CAE": FakeField(value_string="67891234567891"),
+            "CAEDueDate": FakeField(value_date=datetime.date(2025, 11, 12)),
+            "Currency": FakeField(value_string="ARS"),
+            "ExchangeRate": FakeField(value_currency=1.0),
+
             "Items": SimpleNamespace(value_array=fake_items),
         }
 
@@ -135,6 +145,7 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
         )
 
         return fake_doc
+
 
     # --- FIN SIMULACIÓN ---
 

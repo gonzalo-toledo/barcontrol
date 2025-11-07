@@ -4,6 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django.conf import settings
 # from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -99,12 +100,17 @@ def upload_invoice(request):
 def preview_invoice(request):
     """
     Muestra los datos detectados por la IA antes de guardar la factura.
-    - Asigna productos automáticamente si hay coincidencia.
-    - Solo pide selección manual si no se reconoce el producto.
+
+    Incluye:
+      - Verificación de proveedor existente
+      - Validación de duplicados (proveedor + tipo comprobante + punto venta + número)
+      - Asignación automática de productos reconocidos
+      - Confirmación manual si algún producto no fue identificado
     """
     blob_url = request.session.get("preview_blob_url")
     mapped = request.session.get("preview_data")
 
+    # Si no hay datos cargados → vuelve a la pantalla de carga
     if not mapped:
         return render(request, "invoices/preview.html", {
             "error": "No hay resultados para mostrar. Subí una factura nuevamente.",
@@ -113,44 +119,55 @@ def preview_invoice(request):
     header = mapped.get("header", {}) or {}
     items = mapped.get("items", []) or []
 
+    # Diccionario de avisos para la vista
     avisos = {
         "proveedor_nuevo": False,
         "factura_duplicada": False,
-        "productos_sin_match": [],  # [(idx, descripcion)]
+        "productos_sin_match": [],  # [(idx, descripción)]
     }
 
-    # --- Validaciones de proveedor y factura ---
+    # --- 1️⃣ Validar proveedor ---
     prov_name = (header.get("vendor_name") or "").strip()
     prov_cuit = (header.get("vendor_tax_id") or "").replace("-", "").strip()
-    existe_prov = Proveedor.objects.filter(
+
+    proveedor = Proveedor.objects.filter(
         Q(nombre__iexact=prov_name) | Q(id_fiscal__iexact=prov_cuit)
-    ).exists()
-    if not existe_prov and (prov_name or prov_cuit):
+    ).first()
+    if not proveedor:
         avisos["proveedor_nuevo"] = True
 
-    tipo = header.get("tipo_comprobante")
+    # --- 2️⃣ Validar duplicado de factura ---
+    tipo_codigo = header.get("tipo_comprobante")
     pto_vta = (header.get("punto_venta") or "").zfill(4)
     nro = header.get("invoice_id") or header.get("numero")
-    if prov_name and tipo and pto_vta and nro:
+
+    tipo_comprobante = None
+    if tipo_codigo:
+        tipo_comprobante = TipoComprobante.objects.filter(codigo__iexact=tipo_codigo).first()
+
+    if proveedor and tipo_comprobante and nro:
         duplicada = Factura.objects.filter(
-            proveedor__nombre__iexact=prov_name,
-            tipo_comprobante__codigo=tipo,
+            proveedor=proveedor,
+            tipo_comprobante=tipo_comprobante,
             punto_venta=pto_vta,
             numero=nro,
         ).exists()
         avisos["factura_duplicada"] = duplicada
 
+    # --- 3️⃣ Intentar asignar productos automáticamente ---
     productos_existentes = Producto.objects.filter(activo=True).order_by("nombre")
-
-    # --- Asignación automática de productos reconocidos ---
     auto_products = []
+
     for it in items:
         desc = (it.get("description") or "").strip()
         code = (it.get("product_code") or "").strip()
 
         prod = None
         if code:
-            prod = Producto.objects.filter(Q(codigo_interno__iexact=code) | Q(codigo_proveedor__iexact=code)).first()
+            prod = Producto.objects.filter(
+                Q(codigo_interno__iexact=code) | Q(codigo_proveedor__iexact=code)
+            ).first()
+
         if not prod and desc:
             prod = Producto.objects.filter(nombre__iexact=desc).first()
 
@@ -160,10 +177,11 @@ def preview_invoice(request):
             auto_products.append(None)
             avisos["productos_sin_match"].append(desc)
 
-    # --- Si POST: procesar confirmación ---
+    # --- 4️⃣ Procesar envío del formulario (POST) ---
     if request.method == "POST":
         form = PreviewInvoiceForm(request.POST)
-        # productos seleccionados (mantiene los automáticos)
+
+        # Mantiene los productos automáticos y agrega los manuales seleccionados
         selected_products = []
         for idx, it in enumerate(items):
             prod_id = auto_products[idx]
@@ -172,19 +190,24 @@ def preview_invoice(request):
             selected_products.append(prod_id)
 
         if form.is_valid():
+            # Actualiza los valores de cabecera editados por el usuario
             header["vendor_name"] = form.cleaned_data["proveedor"]
             header["invoice_id"] = form.cleaned_data["numero"]
-            header["invoice_date"] = form.cleaned_data["fecha"].isoformat() if form.cleaned_data["fecha"] else None
+            header["invoice_date"] = (
+                form.cleaned_data["fecha"].isoformat() if form.cleaned_data["fecha"] else None
+            )
             header["subtotal"] = form.cleaned_data["subtotal"]
             header["total_tax"] = form.cleaned_data["total_impuestos"]
             header["invoice_total"] = form.cleaned_data["total"]
-            
+
+            # Guarda el mapeo actualizado en sesión (en formato JSON-safe)
             mapped["header"] = header
             mapped_safe = convert_to_json_safe(mapped)
             request.session["preview_data"] = mapped_safe
 
-            # Revalidar duplicado
+            # --- Revalidar duplicado antes de continuar ---
             if avisos["factura_duplicada"]:
+                messages.error(request, "⚠️ Esta factura ya existe en el sistema.")
                 return render(request, "invoices/preview.html", {
                     "form": form,
                     "items": items,
@@ -192,12 +215,12 @@ def preview_invoice(request):
                     "avisos": avisos,
                     "productos": productos_existentes,
                     "auto_products": auto_products,
-                    "error": "Esta factura ya existe en el sistema.",
                 })
 
-            # Verificar que no queden productos sin asignar
+            # --- Verificar que no queden productos sin asignar ---
             pendientes = [p for p in selected_products if not p]
             if pendientes:
+                messages.warning(request, "⚠️ Faltan asignar productos. Creá o seleccioná los que falten.")
                 return render(request, "invoices/preview.html", {
                     "form": form,
                     "items": items,
@@ -205,13 +228,14 @@ def preview_invoice(request):
                     "avisos": avisos,
                     "productos": productos_existentes,
                     "auto_products": auto_products,
-                    "error": "Faltan asignar productos. Creá o seleccioná los que falten.",
                 })
 
+            # Guarda los productos seleccionados para confirmación final
             request.session["preview_selected_products"] = selected_products
             return redirect("confirm_invoice")
 
     else:
+        # --- 5️⃣ Inicializa el formulario en modo lectura ---
         form = PreviewInvoiceForm(initial={
             "proveedor": header.get("vendor_name"),
             "numero": header.get("invoice_id"),
@@ -220,7 +244,8 @@ def preview_invoice(request):
             "total_impuestos": header.get("total_tax"),
             "total": header.get("invoice_total"),
         })
-    
+
+    # --- 6️⃣ Combina ítems con su producto (si ya fue reconocido) ---
     paired_items = []
     for idx, it in enumerate(items):
         prod_id = auto_products[idx]
@@ -231,7 +256,7 @@ def preview_invoice(request):
             "index": idx,
         })
 
-
+    # --- 7️⃣ Render final ---
     return render(request, "invoices/preview.html", {
         "form": form,
         "items": paired_items,
@@ -242,29 +267,73 @@ def preview_invoice(request):
 
 
 
+
 # @login_required
 def confirm_invoice(request):
     """
-    Crea la factura y sus items en la base de datos usando los datos analizados
+    Crea la factura y sus ítems en la base de datos usando los datos analizados.
+    Incluye:
+      - Validación de duplicados (proveedor + tipo comprobante + punto venta + número)
+      - Asignación automática de productos
+      - Manejo de transacciones atómicas (rollback si falla algo)
     """
 
+    # Recupera de sesión los datos procesados por Azure o simulación
     blob_url = request.session.get("preview_blob_url")
     mapped = request.session.get("preview_data")
 
+    # Si no hay datos previos en sesión → redirige a carga
     if not mapped:
         return redirect("upload_invoice")
-    
+
+    # Separa cabecera e ítems
     header = mapped.get("header", {})
     items = mapped.get("items", [])
-    
-    with transaction.atomic():
-        proveedor, _ = Proveedor.objects.get_or_create(
-            nombre=header.get("vendor_name") or "SIN PROVEEDOR",
-            id_fiscal=header.get("vendor_tax_id") or None,
-        )
 
+    # --- 1️⃣ Buscar o crear proveedor ---
+    proveedor, _ = Proveedor.objects.get_or_create(
+        nombre=header.get("vendor_name") or "SIN PROVEEDOR",
+        id_fiscal=header.get("vendor_tax_id") or None,
+    )
+
+    # --- 2️⃣ Datos básicos para validar duplicado ---
+    tipo_codigo = header.get("tipo_comprobante")       # ej: "B"
+    pto_vta = (header.get("punto_venta") or "").zfill(4)  # ej: "0002"
+    nro = header.get("invoice_id") or header.get("numero")
+
+    print("=== DEBUG FACTURA DUPLICADA ===")
+    print("Proveedor:", proveedor.nombre)
+    print("Tipo comprobante:", tipo_codigo)
+    print("Punto de venta:", repr(pto_vta))
+    print("Número:", repr(nro))
+
+    # Busca el tipo de comprobante existente (Factura A, B, etc.)
+    tipo_comprobante = None
+    if tipo_codigo:
+        tipo_comprobante = TipoComprobante.objects.filter(codigo__iexact=tipo_codigo).first()
+
+    # --- 3️⃣ Verificación de duplicados ---
+    if proveedor and tipo_comprobante and nro:
+        existe = Factura.objects.filter(
+            proveedor=proveedor,
+            tipo_comprobante=tipo_comprobante,
+            punto_venta=pto_vta,
+            numero=nro
+        ).exists()
+
+        print("¿Factura existente?", existe)
+
+        if existe:
+            # Si ya existe → muestra mensaje y vuelve a la vista previa
+            messages.error(request, "⚠️ Esta factura ya existe en el sistema.")
+            return redirect("preview_invoice")
+
+    # --- 4️⃣ Crear la factura (dentro de una transacción atómica) ---
+    with transaction.atomic():
         factura = Factura.objects.create(
             proveedor=proveedor,
+            tipo_comprobante=tipo_comprobante,
+            punto_venta=pto_vta,
             numero=header.get("invoice_id") or "SIN NÚMERO",
             fecha=parse_date(header.get("invoice_date")) if header.get("invoice_date") else None,
             subtotal=header.get("subtotal") or 0,
@@ -273,12 +342,19 @@ def confirm_invoice(request):
             url_blob=blob_url,
         )
 
+        # --- 5️⃣ Asignar productos a los ítems ---
         selected_products = request.session.get("preview_selected_products", [])
 
         for idx, it in enumerate(items):
             prod_id = selected_products[idx] if idx < len(selected_products) else None
+            try:
+                prod_id = int(prod_id)
+            except (ValueError, TypeError):
+                prod_id = None
+
             prod = Producto.objects.filter(id=prod_id).first() if prod_id else None
 
+            # Crear ítem de factura (producto, impuesto o resumen)
             ItemFactura.objects.create(
                 factura=factura,
                 producto=prod if it.get("tipo_item") == "producto" else None,
@@ -291,12 +367,14 @@ def confirm_invoice(request):
                 tipo_item=it.get("tipo_item", "producto"),
             )
 
+    # --- 6️⃣ Limpieza de sesión (para evitar reenvíos) ---
+    for key in ["preview_data", "preview_blob_url", "preview_selected_products"]:
+        request.session.pop(key, None)
 
-    # limpiar sesión
-    request.session.pop("preview_data", None)
-    request.session.pop("preview_blob_url", None)
+    # --- 7️⃣ Confirmación visual ---
+    messages.success(request, "✅ Factura registrada correctamente.")
+    return redirect("invoice_detail", pk=factura.pk)
 
-    return redirect("invoice_detail", pk=factura.pk) 
 
 
 def _parse_date(s):
