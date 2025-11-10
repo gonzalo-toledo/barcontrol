@@ -13,6 +13,17 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from productos.models import Producto
+import re
+
+def normalize_text(text: str) -> str:
+    """
+    Limpia y normaliza un texto para mejorar las coincidencias semánticas.
+    Ej: 'Coca-Cola 1.5L' -> 'coca cola 1.5 l'
+    """
+    text = text.lower()
+    text = re.sub(r'[^a-z0-9áéíóúñ\s]', ' ', text)  # elimina símbolos como '-', '.'
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 
 class IAHelper:
@@ -58,7 +69,7 @@ class IAHelper:
     # -----------------------------------------------------------
     # IDENTIFICACIÓN DE PRODUCTO EXISTENTE
     # -----------------------------------------------------------
-    def find_best_product(self, description: str, threshold: float = 0.75) -> Optional[Tuple[Producto, float]]:
+    def find_best_product(self, description: str, threshold: float = 0.70) -> Optional[Tuple[Producto, float]]:
         """
         Busca el producto más similar según la descripción dada.
         Retorna (producto, similitud) si supera el umbral, o None si no hay coincidencias fuertes.
@@ -68,6 +79,7 @@ class IAHelper:
             return None
 
         # Embedding del texto a analizar (ej. "Aceite Natura 1 litro")
+        description = normalize_text(description)
         desc_emb = self.get_embedding(description)
 
         best_match = None
@@ -75,7 +87,7 @@ class IAHelper:
 
         # Recorre todos los productos activos en la base
         for prod in Producto.objects.filter(activo=True):
-            prod_text = f"{prod.nombre} {prod.marca or ''} {prod.categoria or ''}".strip()
+            prod_text = normalize_text(f"{prod.nombre} {prod.marca or ''} {prod.categoria or ''}".strip())
             prod_emb = self.get_embedding(prod_text)
             score = cosine_similarity(desc_emb, prod_emb)[0][0]
 

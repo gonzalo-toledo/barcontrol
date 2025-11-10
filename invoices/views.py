@@ -19,6 +19,7 @@ from .services import azure_blob
 from .services.azure_blob import normalize_filename
 from .services.azure_di import analyze_invoice_auto, debug_invoice_fields
 from .services.mapping import map_invoice_result
+from .services.ia_helper import IAHelper
 
 def _d(s):  # parsea ISO a date o None
     if not s:
@@ -154,23 +155,34 @@ def preview_invoice(request):
         ).exists()
         avisos["factura_duplicada"] = duplicada
 
-    # --- 3️⃣ Intentar asignar productos automáticamente ---
+    # --- 3️⃣ Intentar asignar productos automáticamente con IA ---
     productos_existentes = Producto.objects.filter(activo=True).order_by("nombre")
     auto_products = []
-
+    ia = IAHelper() 
+    
     for it in items:
         desc = (it.get("description") or "").strip()
         code = (it.get("product_code") or "").strip()
 
         prod = None
+        #intentar por cód interno o proveedor (exacto)
         if code:
             prod = Producto.objects.filter(
                 Q(codigo_interno__iexact=code) | Q(codigo_proveedor__iexact=code)
             ).first()
 
+        #intentar por nombre (exacto)
         if not prod and desc:
             prod = Producto.objects.filter(nombre__iexact=desc).first()
 
+        #intentar por similitud de semántica con IA
+        if not prod and desc:
+            result = ia.find_best_product(desc)
+            if result:
+                prod, score = result
+                print(f"🤖 IA asignó automáticamente '{desc}' → '{prod.nombre}' (similitud={score:.2f})")
+
+        #Guardar el resultado o maracar como pendiente
         if prod:
             auto_products.append(prod.id)
         else:
