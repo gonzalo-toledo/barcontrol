@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Productos</h2>
+<a href="{% url 'productos_create' %}" class="btn btn-primary mb-3">➕ Nuevo producto</a>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+        <th>Nombre</th>
+        <th>Categoría</th>
+        <th>Marca</th>
+        <th>Unidad</th>
+        <th>Activo</th>
+        <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in productos %}
+        <tr>
+            <td>{{ p.nombre }}</td>
+            <td>{{ p.categoria }}</td>
+            <td>{{ p.marca }}</td>
+            <td>{{ p.unidad_base }}</td>
+            <td>{{ p.activo|yesno:"Sí,No" }}</td>
+            <td>
+            <a href="{% url 'productos_update' p.id %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+            <a href="{% url 'productos_delete' p.id %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">No hay productos registrados.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

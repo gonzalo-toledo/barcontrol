@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar sesión - Sistema de Gestión{% endblock %}
+
+{% block content %}
+<div style="max-width:420px;margin:4rem auto;">
+  <div class="card pad" style="text-align:center;">
+    <h2 style="margin-bottom:1rem;">Iniciar sesión</h2>
+    <p class="muted" style="margin-bottom:1.5rem;">Accedé al sistema con tus credenciales</p>
+
+    <form method="post" class="grid" style="gap:1rem;">
+      {% csrf_token %}
+      <div>
+        <label for="{{ form.username.id_for_label }}" class="muted" style="font-size:0.9rem;">{{ form.username.label }}</label>
+        {{ form.username }}
+      </div>
+
+      <div>
+        <label for="{{ form.password.id_for_label }}" class="muted" style="font-size:0.9rem;">{{ form.password.label }}</label>
+        {{ form.password }}
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;">Ingresar</button>
+    </form>
+
+    {% if messages %}
+      <div style="margin-top:1rem;text-align:left;">
+        {% for message in messages %}
+          {% if message.tags == 'error' %}
+            <div style="border:1px solid #f5c2c7;border-radius:6px;background:#f8d7da;color:#842029;padding:.6rem 1rem;margin-bottom:.5rem;">
+              {{ message }}
+            </div>
+          {% else %}
+            <div style="border:1px solid #badbcc;border-radius:6px;background:#d1e7dd;color:#0f5132;padding:.6rem 1rem;margin-bottom:.5rem;">
+              {{ message }}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <p class="muted center" style="margin-top:1rem;font-size:0.85rem;">
+    © {{ now|date:"Y" }} Sistema de Gestión — Todos los derechos reservados
+  </p>
+</div>
+{% endblock %}

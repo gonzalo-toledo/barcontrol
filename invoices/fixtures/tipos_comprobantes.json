@@ -1,0 +1,22 @@
+[
+    {"model": "invoices.tipocomprobante", "pk": 1, "fields": {"codigo": "A", "descripcion": "Factura A", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 2, "fields": {"codigo": "B", "descripcion": "Factura B", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 3, "fields": {"codigo": "C", "descripcion": "Factura C", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 4, "fields": {"codigo": "M", "descripcion": "Factura M", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 5, "fields": {"codigo": "T", "descripcion": "Factura T", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 6, "fields": {"codigo": "E", "descripcion": "Factura de Exportación", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 7, "fields": {"codigo": "NC-A", "descripcion": "Nota de Crédito A", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 8, "fields": {"codigo": "NC-B", "descripcion": "Nota de Crédito B", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 9, "fields": {"codigo": "NC-C", "descripcion": "Nota de Crédito C", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 10, "fields": {"codigo": "NC-M", "descripcion": "Nota de Crédito M", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 11, "fields": {"codigo": "ND-A", "descripcion": "Nota de Débito A", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 12, "fields": {"codigo": "ND-B", "descripcion": "Nota de Débito B", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 13, "fields": {"codigo": "ND-C", "descripcion": "Nota de Débito C", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 14, "fields": {"codigo": "ND-M", "descripcion": "Nota de Débito M", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 15, "fields": {"codigo": "R", "descripcion": "Recibo", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 16, "fields": {"codigo": "X", "descripcion": "Presupuesto / Factura X", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 17, "fields": {"codigo": "LC", "descripcion": "Liquidación de compra", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 18, "fields": {"codigo": "RC", "descripcion": "Remito / Comprobante de entrega", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 19, "fields": {"codigo": "FAE", "descripcion": "Factura de Exportación E", "activo": true}},
+    {"model": "invoices.tipocomprobante", "pk": 20, "fields": {"codigo": "FC", "descripcion": "Factura de Crédito Electrónica MiPyME", "activo": true}}
+]

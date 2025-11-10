@@ -1,76 +1,66 @@
-{% extends "invoices/base.html" %}
-{% block title %}Previsualización de Análisis{% endblock %}
+{% extends "base.html" %}
+{% block title %}Revisión de Factura{% endblock %}
 
 {% block content %}
-  <div class="card pad">
-    <h1 style="margin:0 0 .5rem">Previsualización de análisis</h1>
-    <p class="muted">Esto muestra los valores detectados por Azure antes de guardarlos.</p>
+<div class="card pad">
+  <h1>Revisión de Factura</h1>
 
-    {% if error %}
-      <div class="section card pad" style="border-left:4px solid #dc3545">
-        <strong>Error:</strong>
-        <pre class="mono" style="white-space:pre-wrap">{{ error }}</pre>
-      </div>
-    {% endif %}
+  {% if error %}
+    <p style="color:red;">{{ error }}</p>
+    <a href="{% url 'upload_invoice' %}" class="btn">Volver</a>
+  {% else %}
+    <form method="post">
+      {% csrf_token %}
+      <h3>Datos del encabezado</h3>
+      {{ form.as_p }}
 
-    {% if blob_url %}
-      <p class="section">Archivo en almacenamiento: <a href="{{ blob_url }}" target="_blank">{{ blob_url }}</a></p>
-    {% endif %}
-
-    {% if header %}
-      <div class="section">
-        <h3>Cabecera detectada (mapping)</h3>
-        <table>
-          <tbody>
-            {% for k, v in header.items %}
-              <tr><th style="width:240px">{{ k }}</th><td class="mono">{{ v }}</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% endif %}
-
-    <div class="section">
       <h3>Ítems detectados</h3>
-      {% if items %}
-        <div style="overflow:auto">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Description</th>
-                <th class="center">Quantity</th>
-                <th class="center">Unit</th>
-                <th class="right">Unit price</th>
-                <th class="right">Amount</th>
-                <th>Product code</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for it in items %}
-                <tr>
-                  <td class="center">{{ forloop.counter }}</td>
-                  <td><strong>{{ it.description|default:"(sin descripción)" }}</strong></td>
-                  <td class="center">{{ it.quantity|default:"-" }}</td>
-                  <td class="center">{{ it.unit|default:"-" }}</td>
-                  <td class="right mono">{{ it.unit_price|default:"-" }}</td>
-                  <td class="right mono">{{ it.amount|default:"-" }}</td>
-                  <td class="mono">{{ it.product_code|default:"-" }}</td>
-                  <td>{{ it.date|default:"-" }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <p class="muted">No se detectaron ítems.</p>
-      {% endif %}
-    </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th>Cant.</th>
+            <th>Unitario</th>
+            <th>Importe</th>
+            <th>Producto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+            <tr>
+              <td>{{ item.data.description }}</td>
+              <td>{{ item.data.quantity }}</td>
+              <td>{{ item.data.unit_price }}</td>
+              <td>{{ item.data.amount }}</td>
+              <td>
+                {% if item.producto %}
+                  ✅ {{ item.producto.nombre }}
+                  <input type="hidden" name="producto_{{ item.index }}" value="{{ item.producto.id }}">
+                {% else %}
+                  <select name="producto_{{ item.index }}">
+                    <option value="">-- Seleccionar producto --</option>
+                    {% for prod in productos %}
+                      <option value="{{ prod.id }}">{{ prod.nombre }}</option>
+                    {% endfor %}
+                  </select>
+                  <a href="{% url 'productos_create' %}">Nuevo producto</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">No se detectaron ítems.</td></tr>
+          {% endfor %}
+        </tbody>
 
-    <div class="section" style="display:flex;gap:.5rem">
-      <a class="btn" href="{% url 'upload_invoice' %}">Cargar otra factura</a>
-      <a class="btn" href="{% url 'list_invoices' %}">Ir al listado</a>
-    </div>
-  </div>
+
+      </table>
+
+
+      <div style="display:flex; gap:.75rem; margin-top:1rem;">
+        <button type="submit" class="btn btn-primary">Confirmar y guardar</button>
+        <a href="{% url 'upload_invoice' %}" class="btn">Cancelar</a>
+      </div>
+    </form>
+  {% endif %}
+</div>
 {% endblock %}

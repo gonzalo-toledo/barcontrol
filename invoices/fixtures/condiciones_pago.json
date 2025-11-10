@@ -1,0 +1,12 @@
+[
+    {"model": "invoices.condicionpago", "pk": 1, "fields": {"nombre": "Contado", "dias": 0, "activo": true}},
+    {"model": "invoices.condicionpago", "pk": 2, "fields": {"nombre": "Cuenta Corriente 7 días", "dias": 7, "activo": true}},
+    {"model": "invoices.condicionpago", "pk": 3, "fields": {"nombre": "Cuenta Corriente 15 días", "dias": 15, "activo": true}},
+    {"model": "invoices.condicionpago", "pk": 4, "fields": {"nombre": "Cuenta Corriente 30 días", "dias": 30, "activo": true}},
+    {"model": "invoices.condicionpago", "pk": 5, "fields": {"nombre": "Cuenta Corriente 45 días", "dias": 45, "activo": true}},
+    {"model": "invoices.condicionpago", "pk": 6, "fields": {"nombre": "Cuenta Corriente 60 días", "dias": 60, "activo": true}},
+    {"model": "invoices.condicionpago", "pk": 7, "fields": {"nombre": "Cuenta Corriente 90 días", "dias": 90, "activo": true}},
+    {"model": "invoices.condicionpago", "pk": 8, "fields": {"nombre": "Cheque Diferido", "dias": 0, "activo": true}},
+    {"model": "invoices.condicionpago", "pk": 9, "fields": {"nombre": "Transferencia Bancaria", "dias": 0, "activo": true}},
+    {"model": "invoices.condicionpago", "pk": 10, "fields": {"nombre": "Tarjeta de Crédito", "dias": 0, "activo": true}}
+]

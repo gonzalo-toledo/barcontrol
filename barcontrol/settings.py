@@ -40,7 +40,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
+    # apps propias 
     'invoices',
+    'productos',
+    'proveedores',
+    'accounts',
 ]
 
 MIDDLEWARE = [
@@ -58,7 +63,7 @@ ROOT_URLCONF = 'barcontrol.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -145,3 +150,7 @@ DI_ANALYZE_MODE = os.getenv('DI_ANALYZE_MODE', 'auto')
 
 # Si 'auto': umbral para decidir bytes vs SAS por tamaño
 DI_INLINE_BYTES_MAX_MB = float(os.getenv('DI_INLINE_BYTES_MAX_MB', '5'))
+
+# Modo simulación (no hace llamadas a Azure)
+# Si esta en True,  el sistema no se conecta con Azure y usa datos de prueba
+USE_AZURE_SIMULATION = True
