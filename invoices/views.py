@@ -137,7 +137,7 @@ def preview_invoice(request):
     if not proveedor:
         avisos["proveedor_nuevo"] = True
 
-    # --- 2️⃣ Validar duplicado de factura ---
+    # --- 2️⃣ Validar duplicado con los datos del OCR (solo informativo, no bloqueante aún) ---
     tipo_codigo = header.get("tipo_comprobante")
     pto_vta = (header.get("punto_venta") or "").zfill(4)
     nro = header.get("invoice_id") or header.get("numero")
@@ -216,9 +216,33 @@ def preview_invoice(request):
             mapped["header"] = header
             mapped_safe = convert_to_json_safe(mapped)
             request.session["preview_data"] = mapped_safe
+            
+            # revalidar duplicado con los datos actualizados del formulario
+            tipo = header.get("tipo_comprobante")
+            pto_vta = (header.get("punto_venta") or "").zfill(4)
+            nro = header.get("invoice_id") or header.get("numero")
+            
+            prov_name = (header.get("vendor_name") or "").strip()
+            prov_cuit = (header.get("vendor_tax_id") or "").replace("-", "").strip()
+            
+            print("=== REVALIDANDO DUPLICADO CON DATOS ACTUALIZADOS ===")
+            print("Proveedor:", prov_name)
+            print("Tipo comprobante:", tipo)
+            print("Punto de venta:", repr(pto_vta))
+            print("Número:", repr(nro))
+            
+            if proveedor and tipo and nro:
+                tipo_comprobante = TipoComprobante.objects.filter(codigo__iexact=tipo).first()
+                duplicada = Factura.objects.filter(
+                    proveedor=proveedor,
+                    tipo_comprobante=tipo_comprobante,
+                    punto_venta=pto_vta,
+                    numero=nro,
+                ).exists()
+                
+                print("¿Factura existente (revalidación)?", duplicada)
 
-            # --- Revalidar duplicado antes de continuar ---
-            if avisos["factura_duplicada"]:
+            if duplicada:
                 messages.error(request, "⚠️ Esta factura ya existe en el sistema.")
                 return render(request, "invoices/preview.html", {
                     "form": form,
