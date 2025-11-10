@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Proveedores</h2>
+<a href="{% url 'proveedores_create' %}" class="btn btn-primary mb-3">➕ Nuevo proveedor</a>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+        <th>Nombre</th>
+        <th>CUIT / ID Fiscal</th>
+        <th>IVA</th>
+        <th>Dirección</th>
+        <th>Email</th>
+        <th>Teléfono</th>
+        <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in proveedores %}
+        <tr>
+            <td>{{ p.nombre }}</td>
+            <td>{{ p.id_fiscal }}</td>
+            <td>{{ p.condicion_iva }}</td>
+            <td>{{ p.direccion }}</td>
+            <td>{{ p.email }}</td>
+            <td>{{ p.telefono }}</td>
+            <td>
+            <a href="{% url 'proveedores_update' p.id %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+            <a href="{% url 'proveedores_delete' p.id %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">No hay proveedores registrados.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
