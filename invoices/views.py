@@ -19,6 +19,7 @@ from .services import azure_blob
 from .services.azure_blob import normalize_filename
 from .services.azure_di import analyze_invoice_auto, debug_invoice_fields
 from .services.mapping import map_invoice_result
+from .services.ia_helper import IAHelper
 
 def _d(s):  # parsea ISO a date o None
     if not s:
@@ -136,7 +137,7 @@ def preview_invoice(request):
     if not proveedor:
         avisos["proveedor_nuevo"] = True
 
-    # --- 2️⃣ Validar duplicado de factura ---
+    # --- 2️⃣ Validar duplicado con los datos del OCR (solo informativo, no bloqueante aún) ---
     tipo_codigo = header.get("tipo_comprobante")
     pto_vta = (header.get("punto_venta") or "").zfill(4)
     nro = header.get("invoice_id") or header.get("numero")
@@ -154,23 +155,34 @@ def preview_invoice(request):
         ).exists()
         avisos["factura_duplicada"] = duplicada
 
-    # --- 3️⃣ Intentar asignar productos automáticamente ---
+    # --- 3️⃣ Intentar asignar productos automáticamente con IA ---
     productos_existentes = Producto.objects.filter(activo=True).order_by("nombre")
     auto_products = []
-
+    ia = IAHelper() 
+    
     for it in items:
         desc = (it.get("description") or "").strip()
         code = (it.get("product_code") or "").strip()
 
         prod = None
+        #intentar por cód interno o proveedor (exacto)
         if code:
             prod = Producto.objects.filter(
                 Q(codigo_interno__iexact=code) | Q(codigo_proveedor__iexact=code)
             ).first()
 
+        #intentar por nombre (exacto)
         if not prod and desc:
             prod = Producto.objects.filter(nombre__iexact=desc).first()
 
+        #intentar por similitud de semántica con IA
+        if not prod and desc:
+            result = ia.find_best_product(desc)
+            if result:
+                prod, score = result
+                print(f"🤖 IA asignó automáticamente '{desc}' → '{prod.nombre}' (similitud={score:.2f})")
+
+        #Guardar el resultado o maracar como pendiente
         if prod:
             auto_products.append(prod.id)
         else:
@@ -204,9 +216,33 @@ def preview_invoice(request):
             mapped["header"] = header
             mapped_safe = convert_to_json_safe(mapped)
             request.session["preview_data"] = mapped_safe
+            
+            # revalidar duplicado con los datos actualizados del formulario
+            tipo = header.get("tipo_comprobante")
+            pto_vta = (header.get("punto_venta") or "").zfill(4)
+            nro = header.get("invoice_id") or header.get("numero")
+            
+            prov_name = (header.get("vendor_name") or "").strip()
+            prov_cuit = (header.get("vendor_tax_id") or "").replace("-", "").strip()
+            
+            print("=== REVALIDANDO DUPLICADO CON DATOS ACTUALIZADOS ===")
+            print("Proveedor:", prov_name)
+            print("Tipo comprobante:", tipo)
+            print("Punto de venta:", repr(pto_vta))
+            print("Número:", repr(nro))
+            
+            if proveedor and tipo and nro:
+                tipo_comprobante = TipoComprobante.objects.filter(codigo__iexact=tipo).first()
+                duplicada = Factura.objects.filter(
+                    proveedor=proveedor,
+                    tipo_comprobante=tipo_comprobante,
+                    punto_venta=pto_vta,
+                    numero=nro,
+                ).exists()
+                
+                print("¿Factura existente (revalidación)?", duplicada)
 
-            # --- Revalidar duplicado antes de continuar ---
-            if avisos["factura_duplicada"]:
+            if duplicada:
                 messages.error(request, "⚠️ Esta factura ya existe en el sistema.")
                 return render(request, "invoices/preview.html", {
                     "form": form,
