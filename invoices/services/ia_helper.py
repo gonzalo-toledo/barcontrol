@@ -12,7 +12,7 @@ from typing import Optional, Tuple
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-from productos.models import Producto
+from productos.models import Producto, ProductoEmbedding
 import re
 
 def normalize_text(text: str) -> str:
@@ -28,76 +28,98 @@ def normalize_text(text: str) -> str:
 
 class IAHelper:
     """
-    Clase encargada de manejar el modelo de lenguaje y calcular similitudes
-    entre textos (por ejemplo, entre una descripción de factura y un producto).
+    Clase encargada de manejar el modelo de lenguaje y calcular similitudes entre descripciones de factura y productos registrados.
+
+    Utiliza los embeddings ya guardados en BD (ProductoEmbedding) para acelerar las búsquedas.
     """
 
     def __init__(self):
-        # Carga el modelo pre-entrenado (MiniLM)
-        # Este modelo transforma texto en vectores de 384 dimensiones aprox.
-        print("🧠 Cargando modelo de embeddings MiniLM...")
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+        print("🧠 Inicializando IA Helper con embeddings precalculados...")
+        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
+        # Cargar productos activos con embeddings
+        productos = (
+            Producto.objects.filter(activo=True, embedding__isnull=False)
+            .select_related("embedding")
+        )
+
+        self.productos = []
+        self.embeddings = []
+
+        for p in productos:
+            try:
+                vec = np.array(p.embedding.vector, dtype=float)
+                self.productos.append(p)
+                self.embeddings.append(vec)
+            except Exception as ex:
+                print(f"⚠️ Error leyendo embedding de {p.nombre}: {ex}")
+
+        if self.embeddings:
+            self.embeddings = np.vstack(self.embeddings)
+        else:
+            # En caso de que no haya embeddings cargados
+            self.embeddings = np.empty((0, 384))
+
+        print(f"✅ {len(self.productos)} embeddings cargados en memoria.")
+
 
     # -----------------------------------------------------------
-    # CONVERSIÓN DE TEXTO A VECTOR
+    # CÁLCULO DE SIMILITUD SEMÁNTICA
     # -----------------------------------------------------------
-    def get_embedding(self, text: str) -> np.ndarray:
+    def find_best_product(self, description: str, threshold: float = 0.70):
         """
-        Convierte una cadena de texto en un vector numérico (embedding).
-        Si el texto está vacío, devuelve un vector de ceros.
-        """
-        if not text:
-            return np.zeros((1, 384))
-        embedding = self.model.encode([text], normalize_embeddings=True)
-        return embedding
-
-    # -----------------------------------------------------------
-    # CÁLCULO DE SIMILITUD ENTRE DOS TEXTOS
-    # -----------------------------------------------------------
-    def similarity(self, text1: str, text2: str) -> float:
-        """
-        Calcula la similitud (coseno) entre dos textos.
-        Devuelve un valor entre 0 y 1:
-          - 1 significa idéntico
-          - 0 significa sin relación
-        """
-        emb1 = self.get_embedding(text1)
-        emb2 = self.get_embedding(text2)
-        sim = cosine_similarity(emb1, emb2)[0][0]
-        return float(sim)
-
-    # -----------------------------------------------------------
-    # IDENTIFICACIÓN DE PRODUCTO EXISTENTE
-    # -----------------------------------------------------------
-    def find_best_product(self, description: str, threshold: float = 0.70) -> Optional[Tuple[Producto, float]]:
-        """
-        Busca el producto más similar según la descripción dada.
-        Retorna (producto, similitud) si supera el umbral, o None si no hay coincidencias fuertes.
+        Busca el producto más similar semánticamente a la descripción dada.
+        Usa los embeddings precalculados (no recalcula cada vez).
         """
 
         if not description:
             return None
 
-        # Embedding del texto a analizar (ej. "Aceite Natura 1 litro")
-        description = normalize_text(description)
-        desc_emb = self.get_embedding(description)
+        if not self.embeddings.size:
+            print("⚠️ No hay embeddings cargados en memoria para comparar.")
+            return None
 
-        best_match = None
-        best_score = 0.0
+        desc = normalize_text(description)
+        desc_emb = self.model.encode([desc])[0]
 
-        # Recorre todos los productos activos en la base
-        for prod in Producto.objects.filter(activo=True):
-            prod_text = normalize_text(f"{prod.nombre} {prod.marca or ''} {prod.categoria or ''}".strip())
-            prod_emb = self.get_embedding(prod_text)
-            score = cosine_similarity(desc_emb, prod_emb)[0][0]
+        # Calcular similitud por producto (coseno)
+        sims = np.dot(self.embeddings, desc_emb) / (
+            np.linalg.norm(self.embeddings, axis=1) * np.linalg.norm(desc_emb)
+        )
 
-            if score > best_score:
-                best_score = score
-                best_match = prod
+        best_idx = np.argmax(sims)
+        best_score = sims[best_idx]
 
-        if best_match and best_score >= threshold:
-            print(f"✅ Coincidencia encontrada: {best_match.nombre} (similitud={best_score:.2f})")
-            return best_match, best_score
+        if best_score >= threshold:
+            prod = self.productos[best_idx]
+            print(f"✅ Coincidencia encontrada: {prod.nombre} (similitud={best_score:.2f})")
+            return prod, float(best_score)
 
         print(f"⚠️ Ninguna coincidencia relevante para '{description}' (mejor similitud={best_score:.2f})")
         return None
+
+# -----------------------------------------------------------
+# SINGLETON CON CARGA LAZY
+# -----------------------------------------------------------
+_ia_helper_instance = None
+
+
+def get_ia_helper():
+    """
+    Devuelve la instancia global de IAHelper, inicializándola solo una vez.
+    Evita problemas de carga de modelos durante el arranque de Django.
+    """
+    global _ia_helper_instance
+    if _ia_helper_instance is None:
+        from django.apps import apps
+
+        if not apps.ready:
+            # retrasa la creación hasta que Django esté totalmente inicializado
+            apps.lazy_model_operation(lambda: get_ia_helper(), "productos", "Producto")
+            return None
+
+        _ia_helper_instance = IAHelper()
+
+    return _ia_helper_instance
+    
+    #instancia global (singleton) para que el helper no inicialice en cada llamada a preview_invoice (en la view importo get_ia_helper y result = get_ia_helper.find_best_product(desc))
