@@ -12,7 +12,7 @@ from django.utils.dateparse import parse_date
 from django.utils.http import urlencode
 
 from .forms import UploadInvoiceForm, PreviewInvoiceForm
-from .models import Factura, ItemFactura, TipoComprobante, CondicionPago
+from .models import Factura, ItemFactura, TipoComprobante
 from productos.models import Producto
 from proveedores.models import Proveedor 
 from .services import azure_blob

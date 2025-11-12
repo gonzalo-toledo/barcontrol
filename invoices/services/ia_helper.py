@@ -8,11 +8,9 @@ descripciones de productos detectadas en facturas con los productos
 ya registrados en la base de datos.
 """
 
-from typing import Optional, Tuple
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-from productos.models import Producto, ProductoEmbedding
+from productos.models import Producto
 import re
 
 def normalize_text(text: str) -> str:
