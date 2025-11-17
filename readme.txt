@@ -152,4 +152,4 @@ Vista previa → IA intenta reconocer productos y proveedores.
 
 Confirmar factura → Se guarda en BD con sus ítems.
 
-Consulta IA futura (chat) → Usa embeddings de productos y facturas.
+Consulta IA (chat) → Usa embeddings de productos y facturas.

@@ -88,7 +88,7 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
             ),
             SimpleNamespace(
                 value_object={
-                    "Description": FakeField(value_string="Yerba Mate Playadito 1kg"),
+                    "Description": FakeField(value_string="Yerba M. Playadito 1kg"),
                     "Quantity": FakeField(value_number=3),
                     "UnitPrice": FakeField(value_currency=2100.0),
                     "Amount": FakeField(value_currency=6300.0),
@@ -96,7 +96,7 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
             ),
             SimpleNamespace(
                 value_object={
-                    "Description": FakeField(value_string="Harina Pureza 000 1kg"),
+                    "Description": FakeField(value_string="Harina Pureza 000"),
                     "Quantity": FakeField(value_number=10),
                     "UnitPrice": FakeField(value_currency=950.0),
                     "Amount": FakeField(value_currency=9500.0),
@@ -104,7 +104,7 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
             ),
             SimpleNamespace(
                 value_object={
-                    "Description": FakeField(value_string="Fideos Lucchetti Spaghetti 500g"),
+                    "Description": FakeField(value_string="Spaghetti Lucchetti 500g"),
                     "Quantity": FakeField(value_number=12),
                     "UnitPrice": FakeField(value_currency=750.0),
                     "Amount": FakeField(value_currency=9000.0),
@@ -112,7 +112,7 @@ def analyze_invoice_auto(data: bytes, blob_url: str):
             ),
             SimpleNamespace(
                 value_object={
-                    "Description": FakeField(value_string="Coca-Cola 1.5L"),
+                    "Description": FakeField(value_string="Coca Cola 1.5L"),
                     "Quantity": FakeField(value_number=8),
                     "UnitPrice": FakeField(value_currency=1800.0),
                     "Amount": FakeField(value_currency=14400.0),
