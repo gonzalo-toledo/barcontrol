@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.mixins import LoginRequiredMixin
 import json
 
 from assistant.services.chat_service import chat_service
@@ -11,7 +12,7 @@ from assistant.models import ChatMessage
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class ChatAPIView(View):
+class ChatAPIView(LoginRequiredMixin, View):
     """
     Endpoint RESTful del chat IA.
     Guarda el historial de conversación y responde con JSON.
