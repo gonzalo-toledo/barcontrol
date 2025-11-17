@@ -15,6 +15,12 @@ import os
 from dotenv import load_dotenv
 load_dotenv()  # take environment variables from .env.
 
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/upload_invoice/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -46,6 +52,7 @@ INSTALLED_APPS = [
     'productos',
     'proveedores',
     'accounts',
+    'assistant',
 ]
 
 MIDDLEWARE = [
@@ -154,3 +161,6 @@ DI_INLINE_BYTES_MAX_MB = float(os.getenv('DI_INLINE_BYTES_MAX_MB', '5'))
 # Modo simulación (no hace llamadas a Azure)
 # Si esta en True,  el sistema no se conecta con Azure y usa datos de prueba
 USE_AZURE_SIMULATION = True
+
+# Cierra la sesión cuando el navegador se cierra
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
